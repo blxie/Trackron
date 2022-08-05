@@ -1,0 +1,15 @@
+# python
+*.py[cod]
+# */__pycache__
+# */*/__pycache__
+# */*/*/__pycache__
+# */*/*/*/__pycache__
+__pycache__
+*.log
+# */*.so
+*.so
+build
+*egg*
+outputs
+checkpoints
+.git
