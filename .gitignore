@@ -1,12 +1,17 @@
 # python
 *.py[cod]
+
+# 测试 仅仅通过一个相同的文件夹名称，是否会过滤所有的同名文件夹
 # */__pycache__
 # */*/__pycache__
 # */*/*/__pycache__
 # */*/*/*/__pycache__
 __pycache__
 *.log
+
+# my add
 # */*.so
+# 直接过滤掉所有以 `.so` 结尾的文件
 *.so
 build
 *egg*

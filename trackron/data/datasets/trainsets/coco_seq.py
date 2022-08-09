@@ -49,8 +49,9 @@ class MSCOCOSeq(BaseVideoDataset):
         """
         super().__init__('COCO', root, image_loader)
 
-        # TRACED
-        self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
+        # TRACED coco 路径的问题！！！系统中没有将图片单独创建一个wen'jian'jia
+        # self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
+        self.img_pth = os.path.join(root, '{}{}/'.format(split, version))
         self.anno_path = os.path.join(
             root, 'annotations/instances_{}{}.json'.format(split, version))
 

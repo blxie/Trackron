@@ -316,7 +316,8 @@ def build_lr_scheduler(
             t_initial=num_iters,
             t_mul=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_MUL,
             lr_min=cfg.SOLVER.LR_SCHEDULER.LR_MIN,
-            decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            # decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            decay_rate=0.1,
             warmup_lr_init=cfg.SOLVER.LR_SCHEDULER.WARMUP_LR,
             warmup_t=cfg.SOLVER.LR_SCHEDULER.WARMUP_ITERS,
             cycle_limit=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_LIMIT,
@@ -346,7 +347,8 @@ def build_lr_scheduler(
         lr_scheduler = StepLRScheduler(
             optimizer,
             decay_t=cfg.SOLVER.LR_SCHEDULER.DECAY_STEP,
-            decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            # decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            decay_rate=0.1,
             warmup_lr_init=cfg.SOLVER.LR_SCHEDULER.WARMUP_LR,
             warmup_t=cfg.SOLVER.LR_SCHEDULER.WARMUP_ITERS,
             t_in_epochs=False,
@@ -358,7 +360,8 @@ def build_lr_scheduler(
     elif scheduler_name == 'plateau':
         lr_scheduler = PlateauLRScheduler(
             optimizer,
-            decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            # decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            decay_rate=0.1,
             patience_t=cfg.SOLVER.LR_SCHEDULER.LR_PATIENCE_ITERS,
             lr_min=cfg.SOLVER.LR_SCHEDULER.LR_MIN,
             mode=cfg.SOLVER.LR_SCHEDULER.SCHEDULER_MODE,

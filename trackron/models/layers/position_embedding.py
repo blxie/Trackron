@@ -51,7 +51,12 @@ class PositionEmbeddingSine(nn.Module):
         dim_t = torch.arange(self.num_pos_feats,
                              dtype=torch.float32,
                              device=x.device)  # (0,1,2,...,d/2)
-        dim_t = self.temperature**(2 * (dim_t // 2) / self.num_pos_feats)
+        # BUG: UserWarning: __floordiv__ is deprecated, and its behavior will change in a future version of pytorch
+        # https://github.com/NVIDIA/MinkowskiEngine/issues/400
+        # dim_t = self.temperature**(2 * (dim_t // 2) / self.num_pos_feats)
+        dim_t = self.temperature**(
+            2 * (torch.div(dim_t, 2, rounding_mode="floor")) /
+            self.num_pos_feats)
 
         pos_x = x_embed[:, :, :, None] / dim_t  # (b,h,w,d/2)
         pos_y = y_embed[:, :, :, None] / dim_t  # (b,h,w,d/2)

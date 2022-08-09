@@ -60,7 +60,7 @@ class SiameseTracker(BaseTracker):
         self.target_sz = torch.Tensor([state[3], state[2]])
         self.image_sz = image.shape[:2]
 
-        # Crop Image
+        # TRACED Crop Image
         template_arr, scale_factor, template_mask_arr = sample_target(
             image,
             info['init_bbox'],
@@ -125,13 +125,13 @@ class SiameseTracker(BaseTracker):
     def expand_search_box(self, box, scale=1.1):
         """use it when no target are find, expand search area 
 
-    Args:
-        boxes ([type]): [description]
-        image_sizes ([type]): [description]
+        Args:
+            boxes ([type]): [description]
+            image_sizes ([type]): [description]
 
-    Returns:
-        [type]: [description]
-    """
+        Returns:
+            [type]: [description]
+        """
         w, h = box[2], box[3]
         new_w = min(min(self.image_sz) / 6.0, w * scale)
         new_h = min(min(self.image_sz) / 6.0, h * scale)
@@ -142,12 +142,12 @@ class SiameseTracker(BaseTracker):
     def find_target(self, search_tensor, search_mask, scale_factor):
         """[summary]find tracking target and update informations
 
-    Args:
-        search_tensor ([type]): [description]
-        search_mask ([type]): [description]
-    Return:
-      Box coordinate in xyxy format
-    """
+        Args:
+            search_tensor ([type]): [description]
+            search_mask ([type]): [description]
+        Return:
+        Box coordinate in xyxy format
+        """
         with torch.no_grad():
             results = self.net.track_sot(search_tensor, search_mask,
                                          self.sot_ref_info)

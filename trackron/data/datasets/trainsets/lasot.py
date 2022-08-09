@@ -74,9 +74,9 @@ class Lasot(BaseVideoDataset):
                                          'lasot_train_split.txt')
             else:
                 raise ValueError('Unknown split name.')
-            sequence_list = pandas.read_csv(file_path,
-                                            header=None,
-                                            squeeze=True).values.tolist()
+            # FutureWarning: The squeeze argument has been deprecated and will be removed in a future version. Append .squeeze("columns") to the call to squeeze.
+            sequence_list = pandas.read_csv(
+                file_path, header=None).squeeze('columns').values.tolist()
         elif vid_ids is not None:
             sequence_list = [
                 c + '-' + str(v) for c in self.class_list for v in vid_ids

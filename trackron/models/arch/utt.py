@@ -299,6 +299,7 @@ class UnifiedTransformerTracker(nn.Module):
         else:
             raise ValueError('Not supported mode')
 
+    # TRACED 只有训练的时候才会运行到！
     def forward_sot(self, data: List[Dict[str, torch.Tensor]]):
         """for sot training
 
@@ -340,7 +341,7 @@ class UnifiedTransformerTracker(nn.Module):
 
     def forward_mot(self, data: List[Dict[str, torch.Tensor]]):
         """[summary]
-        
+
         Args:
             data (List[Dict[str, torch.Tensor]]): [description]
 

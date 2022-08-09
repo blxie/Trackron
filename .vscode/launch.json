@@ -31,7 +31,7 @@
             "justMyCode": true,
             "args": [
                 "--config-file",
-                "configs/utt/utt.yaml",
+                "configs/utt/utt_64.yaml",
                 "--config-func",
                 "utt",
             ],
