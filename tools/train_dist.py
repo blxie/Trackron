@@ -244,6 +244,8 @@ def main(args):
     if args.eval_only:
         TrackingCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume)
+        
+        # default: sot
         tracking_mode = args.mode if args.mode != 'mix' else 'sot'
         return do_test(cfg,
                        model,

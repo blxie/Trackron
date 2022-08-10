@@ -63,7 +63,7 @@ def default_argument_parser(epilog=None):
                         help="perform evaluation only")
     parser.add_argument("--num-gpus",
                         type=int,
-                        default=1,
+                        default=3,
                         help="number of gpus *per machine*")
     parser.add_argument("--debug", type=int, default=0, help="debug level")
     parser.add_argument("--num-machines",

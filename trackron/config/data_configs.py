@@ -3,7 +3,7 @@ from trackron.config import CfgNode as CN
 
 def default_dataset_cfg():
     cfg = CN()
-    cfg.ROOT = './data'
+    cfg.ROOT = '/data'
     cfg.CLASS_NAME = "SequenceDataset"
     cfg.PROCESSING_NAME = "SequenceProcessing"
     cfg.BOX_MODE = 'xywh'
