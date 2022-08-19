@@ -4,7 +4,7 @@
 
 ```shell
 conda remove --name trackron --all
-rm -rf dist build *.so *egg*
+rm -rf dist build trackron/*.so *egg*
 find -name "*pycache*" | xargs rm -rf
 ```
 
@@ -70,7 +70,29 @@ python setup.py develop
 
 > 单机多卡训练
 
-需要修改一些地方：
+## 需要修改一些地方
+
+> `scheduler` 修改：[Swin transformer TypeError: **init**() got an unexpected keyword argument ‘t_mul‘\_3DYour 的博客-CSDN 博客](https://blog.csdn.net/abc1831939662/article/details/123477853) 直接注释 提示缺少的参数
+
+```python
+lr_scheduler = CosineLRScheduler(
+            optimizer,
+            t_initial=num_iters,
+            # XBL comment,
+            # t_mul=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_MUL,
+            lr_min=cfg.SOLVER.LR_SCHEDULER.LR_MIN,
+            # XBL comment,
+            # decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
+            warmup_lr_init=cfg.SOLVER.LR_SCHEDULER.WARMUP_LR,
+            warmup_t=cfg.SOLVER.LR_SCHEDULER.WARMUP_ITERS,
+            cycle_limit=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_LIMIT,
+            t_in_epochs=False,
+            noise_range_t=noise_range,
+            noise_pct=cfg.SOLVER.LR_SCHEDULER.LR_NOISE_PCT,
+            noise_std=cfg.SOLVER.LR_SCHEDULER.LR_NOISE_STD,
+            noise_seed=cfg.SEED,
+        )
+```
 
 -   `coco` 数据集路径：`self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))`, 去掉 `images`
 
@@ -117,6 +139,8 @@ config_file="configs/utt/utt.yaml"
 --nproc_per_node=2  # 这里修改为对应分 GPU 数量，个人理解，还是有些出入，修改为 3 会报错，提示 bachsize=4 cannot divide by 3, 即无法合适分配！
 ```
 
+修改 `utt.yaml` 中的配置文件，将 `batchsize` 调整为 `3` 的倍数，实验中调整为 `24`。
+
 > 成功运行的脚本
 
 ```python
@@ -126,6 +150,57 @@ tools/dist_train.sh
 tensorboard --logdir=outputs  # 注意这里 outputs 里面必须包含 log.txt，否者不会成功，或者说 tensorboard 的读取路径
 ```
 
-# TODO
+## 运行时配置（看情况是否进行修改）
 
-> `SOT` 训练时候的数据集是否全用到了？怎么查看？
+> 1.是否进行可视化展示
+
+`trackron/config/defaults.py`,
+
+```python
+TRACKER.VISUALIZATION
+```
+
+> 2.修改 `SOT` 图片大小，默认设置在配置文件中 `352`
+
+`trackron/config/data_configs.py`, 320
+
+`configs/utt/utt.yaml`, 352
+
+直接搜索 `SEARCH.SIZE`，然后对 `SOT` 的搜索区域大小进行修改，初步考虑将 `SEARCH.SIZE` 替换为 `img_info` 中的 `w, h`。
+
+最终修改的地方：`trackron/data/processing/base.py`，将图片裁剪部分操作去除即可；默认的训练方式是 `SOT`。
+
+# Q & A
+
+> Q: `SOT` 训练时候的数据集是否全用到了？怎么查看？
+
+A: 在配置文件 `utt.yaml` 或者 终端日志 输出中可以看到，对与 `SOT` 模式使用的训练数据集为 `SOT & coco` 数据集，并未使用到 `MOT` 数据集进行混合训练！
+
+> Q: 是否可以在 `SOT & MOT` 之间进行切换？
+
+A: 可以。具体实现是设置经过 30 个间隔，在两种模式之间进行切换。`trackron/trackers/tracking_actor.py` 中注释的部分：`self.tracker.switch_tracking_mode(image, info)`
+
+# 成功运行
+
+```
+python tools/train_net.py --config-file "configs/utt/utt.yaml" --config-func utt
+```
+
+## RESUME
+
+个人猜测从 `last_checkpoint` 进行加载，而非 `.pth` 文件！！！
+
+1. 修改 `utt.yaml` 中的 `weights`;
+
+```yaml
+# WEIGHTS: "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
+```
+
+> `ERROR` 解决！
+
+-   `trackron/checkpoint/tracking_checkpoint.py`: `func save()`
+-   `/home/guest/anaconda3/envs/trackron/lib/python3.8/site-packages/fvcore/common/checkpoint.py`: `meta` 官方的 `fvcore`
+
+[Py 之 fvcore：fvcore 库的简介、安装、使用方法之详细攻略\_一个处女座的程序猿的博客-CSDN 博客\_fvcore 安装](https://blog.csdn.net/qq_41185868/article/details/103881195)
+[How to resume training from last checkpoint? · Issue #148 · facebookresearch/detectron2](https://github.com/facebookresearch/detectron2/issues/148)

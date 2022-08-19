@@ -41,19 +41,21 @@ def default_argument_parser(epilog=None):
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--config-file",
-                        default="",
+                        default="configs/utt/utt.yaml",
                         metavar="FILE",
                         help="path to config file")
     parser.add_argument("--config-func",
-                        default="s3t",
+                        # default="s3t",  # error
+                        default="utt",
                         help="function for setting configs")
+
+    # TRACED
     parser.add_argument(
         "--resume",
         action="store_true",
         help="Whether to attempt to resume from the checkpoint directory. "
         "See documentation of `DefaultTrainer.resume_or_load()` for what it means.",
     )
-    # TRACED
     parser.add_argument("--mode",
                         type=str,
                         default="sot",

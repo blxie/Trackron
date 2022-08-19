@@ -218,10 +218,12 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
                 # Compared to "train_net.py", the test results are not dumped to EventStorage
                 comm.synchronize()
 
-            if iteration - start_iter > 5 and ((iteration + 1) % 20 == 0
-                                               or iteration == max_iter - 1):
-                for writer in writers:
-                    writer.write()
+            # if iteration - start_iter > 5 and ((iteration + 1) % 20 == 0
+            #                                    or iteration == max_iter - 1):
+            #     for writer in writers:
+            #         writer.write()
+            for writer in writers:
+                writer.write()
             periodic_checkpointer.step(iteration)
 
 
@@ -233,6 +235,8 @@ def main(args):
     model = build_model(cfg)
     if cfg.SYNC_BN:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
+    # TRACED 模型的结构信息太长，如果需要再进行输出即可！
     logger.info("Model:\n{}".format(model))
     distributed = comm.get_world_size() > 1
     if distributed:
@@ -244,7 +248,7 @@ def main(args):
     if args.eval_only:
         TrackingCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume)
-        
+
         # default: sot
         tracking_mode = args.mode if args.mode != 'mix' else 'sot'
         return do_test(cfg,
@@ -257,7 +261,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = default_argument_parser()
+    # XBL comment;
+    # 这里主要涉及到模型继续训练的参数设置问题，以及 argparse 里面的 action 参数
+    # args = parser.parse_args('--resume'.split())
     args = parser.parse_args()
+    # TRACED 模型的结构信息太长，如果需要再进行输出即可！
     print("Command Line Args:", args)
 
     if os.environ.get('LOCAL_RANK', -1) != -1:

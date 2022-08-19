@@ -1,6 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "UnifiedTransformerTracker2"
-  WEIGHTS: "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+  # WEIGHTS: "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+  WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
   BACKBONE:
     NAME: "resnet50"
     OUTPUT_LAYERS: ["layer2", "layer3", "layer4"]
@@ -70,7 +71,9 @@ SOT:
     NUM_WORKERS: 0
     STACK_DIM: 0
     COLLATE_FN: 'trival'
-    BATCH_SIZE: 4
+    # BATCH_SIZE: 4
+    # 配合 GPU 数量，能够被整除
+    BATCH_SIZE: 24
 
 MOT:
   OBJECTIVE:
@@ -112,7 +115,9 @@ SOLVER:
     WARMUP_ITERS: 2000
     WARMUP_LR: 1e-6
     LR_MIN: 1e-6
+  # XBL comment;
   CHECKPOINT_PERIOD: 10000
+  # CHECKPOINT_PERIOD: 10  # debug
   CLIP_GRADIENTS:
     ENABLED: False
     CLIP_TYPE: "norm"

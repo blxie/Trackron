@@ -158,11 +158,11 @@ class TokenHead(nn.Module):
     def refine_boxes(self, search_feat, target_feat, pred_boxes):
         """[refine boxes]
 
-    Args:
-        search_feat ([type]): [K B C]
-        target_feat ([type]): [N B C]
-        pred_boxes ([type]): [N B C]
-    """
+        Args:
+            search_feat ([type]): [K B C]
+            target_feat ([type]): [N B C]
+            pred_boxes ([type]): [N B C]
+        """
         K, B, C = search_feat.shape
         sz = int(math.sqrt(K))
         search_feat = rearrange(search_feat,

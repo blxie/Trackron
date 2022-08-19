@@ -201,14 +201,15 @@ class TrackingActor:
             raise NotImplementedError
 
     # TRACED run tracking!!!
-    def _track_sequence(self,
-                        seq,
-                        init_info,
-                        save_video=False,
-                        # save_video=True,
-                        visualization=False,
-                        mode='sot',
-                        **kwargs):
+    def _track_sequence(
+            self,
+            seq,
+            init_info,
+            save_video=False,
+            # save_video=True,
+            visualization=False,
+            mode='sot',
+            **kwargs):
         # Initialize
         image = self._read_image(seq.frames[0])
         init_info['video'] = seq.name
@@ -257,6 +258,8 @@ class TrackingActor:
                     out,
                     segmentation,
                     vwriter)
+
+            # TRACED 在追踪的过程中实现 SOT 和 MOT 的切换
             # if frame_num % 30 == 0:
             # # if frame_num == 30:
             #   self.tracker.switch_tracking_mode(image, info)

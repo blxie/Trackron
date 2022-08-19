@@ -36,6 +36,8 @@ class TrackingCheckpointer(Checkpointer):
             **checkpointables,
         )
 
+    # TRACED checkpoint .pth error 解决
+    # BUG 模型没有保存 iteration!!! 无法重新加载训练！！！
     def save(self, name: str, **kwargs: Any) -> None:
         """
         only save model parameters for final model
@@ -49,16 +51,17 @@ class TrackingCheckpointer(Checkpointer):
         if name != 'model_final':
             super().save(name, **kwargs)
 
-        basename = "{}.pth".format(name)
-        save_file = os.path.join(self.save_dir, basename)
-        assert os.path.basename(save_file) == basename, basename
+        # XBL comment; 直接注释这部分，父类已经实现了！！！
+        # basename = "{}.pth".format(name)
+        # save_file = os.path.join(self.save_dir, basename)
+        # assert os.path.basename(save_file) == basename, basename
 
-        data = {}
-        data["model"] = self.model.state_dict()
-        self.logger.info("Saving checkpoint to {}".format(save_file))
-        with self.path_manager.open(save_file, "wb") as f:
-            torch.save(data, f)
-        self.tag_last_checkpoint(basename)
+        # data = {}
+        # data["model"] = self.model.state_dict()
+        # self.logger.info("Saving checkpoint to {}".format(save_file))
+        # with self.path_manager.open(save_file, "wb") as f:
+        #     torch.save(data, f)
+        # self.tag_last_checkpoint(basename)
 
     def load(self, path, *args, **kwargs):
         need_sync = False

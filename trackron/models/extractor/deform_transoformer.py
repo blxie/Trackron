@@ -122,7 +122,8 @@ class DeformableTransformer(nn.Module):
                                W_ - 1,
                                W_,
                                dtype=torch.float32,
-                               device=memory.device))
+                               device=memory.device),
+                indexing='ij')
             grid = torch.cat([grid_x.unsqueeze(-1), grid_y.unsqueeze(-1)], -1)
 
             scale = torch.cat([valid_W.unsqueeze(-1),

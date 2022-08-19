@@ -170,6 +170,7 @@ WTForms
 wtforms-recaptcha
 xmltodict
 yacs
+yapf
 youtube-dl
 zipp
 zope.deprecation

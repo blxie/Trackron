@@ -12,7 +12,12 @@ from torchvision.ops import box_convert
 from .build import BOX_HEAD_REGISTRY
 
 
-def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
+def conv(in_planes,
+         out_planes,
+         kernel_size=3,
+         stride=1,
+         padding=1,
+         dilation=1):
     return nn.Sequential(
         nn.Conv2d(in_planes,
                   out_planes,
@@ -20,7 +25,8 @@ def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
                   stride=stride,
                   padding=padding,
                   dilation=dilation,
-                  bias=True), nn.BatchNorm2d(out_planes), nn.ReLU(inplace=True))
+                  bias=True), nn.BatchNorm2d(out_planes),
+        nn.ReLU(inplace=True))
 
 
 def mlp(in_planes, out_planes):
@@ -74,7 +80,9 @@ class Center(nn.Module):
         score_map, center = self.predict_center(center_feat)
         size = self.layer_sz(target_feat, search_feat)
         pred_boxes = torch.cat([center, size], dim=-1)
-        pred_boxes = rearrange(pred_boxes, '(b n) c -> n b c', n=len(target_feat))
+        pred_boxes = rearrange(pred_boxes,
+                               '(b n) c -> n b c',
+                               n=len(target_feat))
         pred_boxes = box_convert(pred_boxes, 'cxcywh', 'xyxy')
         if return_score:
             return score_map, pred_boxes
@@ -105,11 +113,21 @@ class Center(nn.Module):
             # coord_x = indice.repeat((sz, 1)).view((sz**2,))
             # coord_y = indice.repeat((1, sz)).view((sz**2,))
             coord_y, coord_x = torch.meshgrid(
-                torch.linspace(0, h - 1, w, dtype=torch.float32, device=score.device),
-                torch.linspace(0, w - 1, w, dtype=torch.float32, device=score.device))
+                torch.linspace(0,
+                               h - 1,
+                               w,
+                               dtype=torch.float32,
+                               device=score.device),
+                torch.linspace(0,
+                               w - 1,
+                               w,
+                               dtype=torch.float32,
+                               device=score.device),
+                indexing='ij')
             coord_x = (coord_x.flatten() + 0.5) / w
             coord_y = (coord_y.flatten() + 0.5) / h
-        cx_coord, cy_coord = self.soft_argmax(score.flatten(-2), coord_x, coord_y)
+        cx_coord, cy_coord = self.soft_argmax(score.flatten(-2), coord_x,
+                                              coord_y)
         center = torch.stack([cx_coord, cy_coord], dim=1)
         return center
 
@@ -135,13 +153,18 @@ class Size(nn.Module):
         self.norm2 = nn.LayerNorm(hidden_dim)
         self.act = nn.ReLU(inplace=True)
 
-
-        self.layer1 = nn.Sequential(mlp(hidden_dim, hidden_dim // 4), Rearrange('b k c -> b c k'),
-                                    mlp(patch_dim, patch_dim // 4), Rearrange('b c k -> b k c'))
-        self.layer2 = nn.Sequential(mlp(hidden_dim // 4, hidden_dim // 16), Rearrange('b k c -> b c k'),
-                                    mlp(patch_dim // 4, patch_dim // 16), Rearrange('b c k -> b k c'))
-        self.layer3 = nn.Sequential(mlp(hidden_dim // 16, 8), Rearrange('b k c -> b c k'),
-                                    mlp(patch_dim // 16, 8), Rearrange('b c k -> b k c'))
+        self.layer1 = nn.Sequential(mlp(hidden_dim, hidden_dim // 4),
+                                    Rearrange('b k c -> b c k'),
+                                    mlp(patch_dim, patch_dim // 4),
+                                    Rearrange('b c k -> b k c'))
+        self.layer2 = nn.Sequential(mlp(hidden_dim // 4, hidden_dim // 16),
+                                    Rearrange('b k c -> b c k'),
+                                    mlp(patch_dim // 4, patch_dim // 16),
+                                    Rearrange('b c k -> b k c'))
+        self.layer3 = nn.Sequential(mlp(hidden_dim // 16, 8),
+                                    Rearrange('b k c -> b c k'),
+                                    mlp(patch_dim // 16, 8),
+                                    Rearrange('b c k -> b k c'))
         self.size_layer = nn.Linear(64, 2)
 
     def forward(self, target_feat, search_feat):
@@ -159,8 +182,8 @@ class Size(nn.Module):
         target_feat = rearrange(target_feat, 'q b c -> (b q) c').unsqueeze(1)
         search_feat = repeat(search_feat, 'k b c -> (b q) k c', q=q)
         params = self.dynamic(target_feat)
-        param1 = params[..., :self.num_params].view(b*q, c, -1)
-        param2 = params[..., self.num_params:].view(b*q, -1, c)
+        param1 = params[..., :self.num_params].view(b * q, c, -1)
+        param2 = params[..., self.num_params:].view(b * q, -1, c)
 
         features = torch.bmm(search_feat, param1)
         features = self.act(self.norm1(features))

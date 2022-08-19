@@ -114,25 +114,20 @@ def do_val(val_iters, model, iteration=20):
 
 
 def forward_step(data_iters, model, max_fail=10, mode='sot'):
-    data = next(data_iters)
-    return model(data, mode=mode)
-
-
-# def forward_step(data_iters, model, max_fail=10, mode='sot'):
-#     fail_time = 0
-#     while fail_time < max_fail:
-#         try:
-#             data = next(data_iters)
-#             # BUG RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
-#             # 原因：数据未被正确加载
-#             return model(data, mode=mode)
-#         except Exception:
-#             fail_time += 1
-#             traceback.print_exc()
-#             logger.warning('retry %d th time' % fail_time)
-#     traceback.print_exc()
-#     # TRACED
-#     raise ValueError('Cannot get data')
+    fail_time = 0
+    while fail_time < max_fail:
+        try:
+            data = next(data_iters)
+            # BUG RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
+            # 原因：数据未被正确加载
+            return model(data, mode=mode)
+        except Exception:
+            fail_time += 1
+            traceback.print_exc()
+            logger.warning('retry %d th time' % fail_time)
+    traceback.print_exc()
+    # TRACED
+    raise ValueError('Cannot get data')
 
 
 def do_train(cfg, model, resume=False, tracking_mode='sot'):
@@ -152,9 +147,11 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
         checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume)
     max_iter = cfg.SOLVER.MAX_ITER
 
+    # XBL add snapcodes; max_to_keep=3
     periodic_checkpointer = PeriodicCheckpointer(checkpointer,
                                                  cfg.SOLVER.CHECKPOINT_PERIOD,
-                                                 max_iter=max_iter)
+                                                 max_iter=max_iter,
+                                                 max_to_keep=3)
 
     writers = default_writers(cfg.OUTPUT_DIR,
                               max_iter) if comm.is_main_process() else []
@@ -227,6 +224,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
                                                or iteration == max_iter - 1):
                 for writer in writers:
                     writer.write()
+
             periodic_checkpointer.step(iteration)
 
 

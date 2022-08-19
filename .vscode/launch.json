@@ -28,10 +28,11 @@
             "request": "launch",
             "program": "tools/train_net.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            // "justMyCode": true,
+            "justMyCode": false,
             "args": [
                 "--config-file",
-                "configs/utt/utt_64.yaml",
+                "configs/utt/utt.yaml",
                 "--config-func",
                 "utt",
             ],
