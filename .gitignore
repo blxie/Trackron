@@ -19,3 +19,4 @@ outputs
 checkpoints
 .git
 nohup.out
+*.pth

@@ -5,6 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "TRAIN-SOT",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--config-file",
+                "configs/utt/utt.yaml",
+                "--config-func",
+                "utt",
+                "--resume", // ！！！从中断的地方开始继续训练
+                "--num-gpus",
+                "3",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
+                "CUDA_VISIBLE_DEVICES": "0,1,2"
+            }
+        },
+        {
             "name": "TEST-SOT",
             "type": "python",
             "request": "launch",
@@ -18,29 +40,11 @@
                 "utt",
                 "--eval-only",
                 "--num-gpus",
-                "1",  // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
+                "1", // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
                 "CUDA_VISIBLE_DEVICES": "2"
-            }
-        },
-        {
-            "name": "TRAIN-SOT",
-            "type": "python",
-            "request": "launch",
-            "program": "tools/train_net.py",
-            "console": "integratedTerminal",
-            // "justMyCode": true,
-            "justMyCode": false,
-            "args": [
-                "--config-file",
-                "configs/utt/utt.yaml",
-                "--config-func",
-                "utt",
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
             }
         },
         {

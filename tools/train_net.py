@@ -156,7 +156,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
     periodic_checkpointer = PeriodicCheckpointer(checkpointer,
                                                  cfg.SOLVER.CHECKPOINT_PERIOD,
                                                  max_iter=max_iter,
-                                                 max_to_keep=1)
+                                                 max_to_keep=3)
 
     writers = default_writers(cfg.OUTPUT_DIR,
                               max_iter) if comm.is_main_process() else []
@@ -177,9 +177,19 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
     #   train_loader = build_tracking_loader(cfg.VOS, training=True)
     #   train_iters['vos'] = iter(train_loader)
 
+    # XBL add;
+    import os
+    best_path = 'outputs/best.pth'
+    # 注意要在 CPU 中进行加载！
+    if os.path.isfile(best_path):
+        ckpt = torch.load(best_path, map_location='cpu')
+        # best_loss = ckpt['loss'] if ckpt.has_key('loss') else 1e+6
+        # best_loss = ckpt['loss'] if 'loss' in ckpt.keys() else 1e+6  # 使用 in 判断速度更快！
+        best_loss = ckpt['loss'] if 'loss' in ckpt else 1e+6  # 使用 in 判断速度更快！
+    else:
+        best_loss = 1e+6
     with EventStorage(start_iter) as storage:
         # for data, iteration in zip(data_loader, range(start_iter, max_iter)):
-        # min_loss = 1e+9  # [x] XBL add; 用于保存最好的模型
         for iteration in range(start_iter, max_iter):
             storage.iter = iteration
             if tracking_mode == 'mix':
@@ -231,10 +241,16 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
                 for writer in writers:
                     writer.write()
 
-            # if losses_reduced < min_loss:
-            #     min_loss = losses_reduced
-            # is_best = losses_reduced < min_loss
-            # periodic_checkpointer.step(iteration, is_best=is_best)
+            # 思路：每个模型都保存截至当前最小的损失值，如果当前损失值更小，就对best.pth进行更新
+            if losses < best_loss:  # 如果当前损失值更小，就进行更新保存
+                best_loss = losses
+                checkpointer.best_save("model_best", loss=best_loss)
+                logger.info(
+                    "saving best checkpoint! best loss is {} < {}!".format(
+                        best_loss, losses))
+            # else:
+            # logger.info(f"current loss {losses} > best loss {best_loss}!")
+
             periodic_checkpointer.step(iteration)
 
 

@@ -38,9 +38,9 @@ class TrackingCheckpointer(Checkpointer):
 
     # TRACED checkpoint .pth error 解决
     # BUG 模型没有保存 iteration!!! 无法重新加载训练！！！
-    def save(self, name: str, **kwargs: Any) -> None:
+    def best_save(self, name: str, **kwargs: Any) -> None:
         """
-        only save model parameters for final model
+        only save model parameters for best model
 
         Args:
             name (str): name of the file.
@@ -48,27 +48,18 @@ class TrackingCheckpointer(Checkpointer):
         """
         if not self.save_dir or not self.save_to_disk:
             return
-        if name != 'model_final':
-            super().save(name, **kwargs)
+        # if name != 'model_final':
+        #     super().save(name, **kwargs)
 
-        # XBL comment; 直接注释这部分，父类已经实现了！！！
-        # 保存最好的模型（由于每一次 eval 都是 80000，非常耗费时间）
-        # 1. 确认是否有最好的模型，如果没有，赋值第一个作为初始值，否则进行后续判断
-        # basename = "best.pth"
-        # save_file = os.path.join(self.save_dir, basename)
-        # assert os.path.basename(save_file) == basename, basename
-        # if not os.path.isfile(save_file):
-        #     import shutil
-        #     shutil.copyfile(save_file,
-        #                     os.path.join(self.save_dir, f"model_{name}.pth"))
-        # else:
-        #     # 判断是否是最好的模型，如果是就进行更新，否则不进行操作！
-        #     data = {}
-        #     data["model"] = self.model.state_dict()
-        #     self.logger.info(
-        #         "Updating best checkpoint to {}".format(save_file))
-        #     with self.path_manager.open(save_file, "wb") as f:
-        #         torch.save(data, f)
+        # TRACED: XBL ADD; 保存最好的模型！
+        data = {}
+        data.update(kwargs)
+        basename = "best.pth"
+        save_file = os.path.join(self.save_dir, basename)
+        assert os.path.basename(save_file) == basename, basename
+        data["model"] = self.model.state_dict()
+        with self.path_manager.open(save_file, "wb") as f:
+            torch.save(data, f)
 
     def load(self, path, *args, **kwargs):
         need_sync = False
