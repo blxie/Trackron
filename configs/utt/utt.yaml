@@ -17,7 +17,7 @@ MODEL:
     POOL_SCALES: [0.0625]
     POOL_SAMPLE_RATIO: 2
     POOL_TYPE: "ROIAlignV2"
-    # TRACED
+    # TRACED:
     BOX_HEAD:
       NAME: "Corner2"
       INPUT_DIM: 512
@@ -27,11 +27,11 @@ MODEL:
     POOL_SCALES: [0.125, 0.0625, 0.03125, 0.015625]
     POOL_SAMPLE_RATIO: 2
     POOL_TYPE: "ROIAlignV2"
-  # TRACED
+  # TRACED:
   BOX_HEAD:
     HIDDEN_DIM: 512
     INPUT_DIM: 512
-  # TRACED
+  # TRACED:
   TRACK_HEAD:
     OUTPUT_SCORE: False
     ITERATIONS: 6
@@ -43,6 +43,7 @@ MODEL:
     EXPAND_SCALE: 1.0
 
 
+# TRACED: SOT 相关的所有配置！
 SOT:
   OBJECTIVE:
     NAME: "SequenceSOTObjective"
@@ -63,8 +64,11 @@ SOT:
       SCALE_JITTER: 0.5
       FRAMES: 3
     TEST:
-      DATASET_NAMES: ["lasot"]
+      # DATASET_NAMES: ["lasot"]
+      DATASET_NAMES: ["trackingnet"]
       SPLITS: [""]
+      # DATASET_NAMES: ["got10k"]
+      # SPLITS: ["test"]
       VERSIONS: [""]
 
   DATALOADER:
@@ -106,8 +110,10 @@ MOT:
     BATCH_SIZE: 64
 
 
+# TRACED: 训练相关设置
 SOLVER:
-  MAX_ITER: 400000
+  MAX_ITER: 500000
+  # MAX_ITER: 200000
   BASE_LR: 1e-4
   OPTIMIZER_NAME: "adamw"
   LR_SCHEDULER:
@@ -115,8 +121,8 @@ SOLVER:
     WARMUP_ITERS: 2000
     WARMUP_LR: 1e-6
     LR_MIN: 1e-6
-  # XBL comment;
-  CHECKPOINT_PERIOD: 10000
+  # TRACED: XBL comment;
+  CHECKPOINT_PERIOD: 100
   # CHECKPOINT_PERIOD: 10  # debug
   CLIP_GRADIENTS:
     ENABLED: False

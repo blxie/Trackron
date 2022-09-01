@@ -241,7 +241,7 @@ class TrackingActor:
             info['previous_output'] = out
             info['time'] = time.time() - start_time
 
-            #### TRACED track image
+            #### TRACED: track image
             out = self.tracker.track(image, info)
             self.update_tracking_outputs(out, info)
             # if self.tracker.tracking_mode == "sot":
@@ -259,7 +259,7 @@ class TrackingActor:
                     segmentation,
                     vwriter)
 
-            # TRACED 在追踪的过程中实现 SOT 和 MOT 的切换
+            # TRACED: 在追踪的过程中实现 SOT 和 MOT 的切换
             # if frame_num % 30 == 0:
             # # if frame_num == 30:
             #   self.tracker.switch_tracking_mode(image, info)

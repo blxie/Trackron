@@ -49,7 +49,7 @@ def default_argument_parser(epilog=None):
                         default="utt",
                         help="function for setting configs")
 
-    # TRACED
+    # TRACED: 从最后保存的模型开始继续训练
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -67,6 +67,7 @@ def default_argument_parser(epilog=None):
                         type=int,
                         default=3,
                         help="number of gpus *per machine*")
+    # TRACED: 测试的时候用于调试打印详细错误信息
     parser.add_argument("--debug", type=int, default=0, help="debug level")
     parser.add_argument("--num-machines",
                         type=int,

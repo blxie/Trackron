@@ -90,7 +90,7 @@ class DatasetEvaluators(DatasetEvaluator):
     def evaluate(self):
         results = OrderedDict()
         for evaluator in self._evaluators:
-            # TRACED 产生追踪结果的地方？
+            # TRACED: 产生追踪结果的地方？
             result = evaluator.evaluate()
             if is_main_process() and result is not None:
                 for k, v in result.items():
@@ -130,6 +130,7 @@ def inference_on_dataset(tracking_actor, data_loader,
     logger = logging.getLogger(__name__)
     logger.info("Start inference on {} videos".format(len(data_loader)))
 
+    # TRACED: 为什么要固定？
     total = len(data_loader)  # inference data loader must have a fixed length
     if evaluator is None:
         # create a no-op evaluator
@@ -160,7 +161,7 @@ def inference_on_dataset(tracking_actor, data_loader,
                 total_frames = 0
 
             start_compute_time = time.perf_counter()
-            # TRACED 得到追踪的结果！
+            # TRACED: 得到追踪的结果！
             outputs = tracking_actor(
                 inputs[0], **kwargs
             )  ## inputs are batched, only support single sequence tracking
@@ -184,7 +185,7 @@ def inference_on_dataset(tracking_actor, data_loader,
             if idx >= num_warmup * 2 or compute_seconds_per_iter > 5:
                 eta = datetime.timedelta(seconds=int(total_seconds_per_iter *
                                                      (total - idx - 1)))
-                # TRACED 最终的输出日志信息！
+                # TRACED: 最终的输出日志信息！
                 log_every_n_seconds(
                     logging.INFO,
                     (f"Inference done {idx + 1}/{total}. "
@@ -221,6 +222,7 @@ def inference_on_dataset(tracking_actor, data_loader,
 
     if results is None:
         results = {}
+        
     return results
 
 

@@ -16,10 +16,13 @@
                 "configs/utt/utt.yaml",
                 "--config-func",
                 "utt",
-                "--eval-only"
+                "--eval-only",
+                "--num-gpus",
+                "1",  // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
             ],
             "env": {
-                "PYTHONPATH": "${workspaceFolder}"
+                "PYTHONPATH": "${workspaceFolder}",
+                "CUDA_VISIBLE_DEVICES": "2"
             }
         },
         {

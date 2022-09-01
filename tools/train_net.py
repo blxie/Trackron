@@ -62,7 +62,7 @@ def write_test_metric(results, storage):
         storage.put_scalars(smoothing_hint=False, **save_dicts)
 
 
-# TRACED
+# TRACED: 测试时候进行调用
 def do_test(cfg, model, tracking_mode, debug_level=-1):
     results = OrderedDict()
     tracking_actor = TrackingActor(
@@ -75,7 +75,11 @@ def do_test(cfg, model, tracking_mode, debug_level=-1):
     tracking_cfg = cfg.get(tracking_mode.upper())
     dataset_names = tracking_cfg.DATASET.TEST.DATASET_NAMES
     for idx, dataset_name in enumerate(dataset_names):
-        loader = build_tracking_test_loader(tracking_cfg, dataset_name)
+        # TRACED: 为什么 inference 数据集要固定长度？loader
+        # XBL add; sampler=None
+        loader = build_tracking_test_loader(tracking_cfg,
+                                            dataset_name,
+                                            sampler=None)
         version = tracking_cfg.DATASET.TEST.VERSIONS[idx]
         if version != "":
             dataset_name = f'{dataset_name}{version}'
@@ -84,6 +88,7 @@ def do_test(cfg, model, tracking_mode, debug_level=-1):
                                   output_dir=result_dir,
                                   tracking_mode=tracking_mode)
 
+        # TRACED: 为什么 inference 数据集要固定长度？dataloader
         results_i = inference_on_dataset(tracking_actor, loader, evaluator)
         results[dataset_name] = results_i
         # if comm.is_main_process() and tracking_mode == 'sot':
@@ -151,7 +156,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
     periodic_checkpointer = PeriodicCheckpointer(checkpointer,
                                                  cfg.SOLVER.CHECKPOINT_PERIOD,
                                                  max_iter=max_iter,
-                                                 max_to_keep=3)
+                                                 max_to_keep=1)
 
     writers = default_writers(cfg.OUTPUT_DIR,
                               max_iter) if comm.is_main_process() else []
@@ -174,6 +179,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
 
     with EventStorage(start_iter) as storage:
         # for data, iteration in zip(data_loader, range(start_iter, max_iter)):
+        # min_loss = 1e+9  # [x] XBL add; 用于保存最好的模型
         for iteration in range(start_iter, max_iter):
             storage.iter = iteration
             if tracking_mode == 'mix':
@@ -225,6 +231,10 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
                 for writer in writers:
                     writer.write()
 
+            # if losses_reduced < min_loss:
+            #     min_loss = losses_reduced
+            # is_best = losses_reduced < min_loss
+            # periodic_checkpointer.step(iteration, is_best=is_best)
             periodic_checkpointer.step(iteration)
 
 

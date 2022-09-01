@@ -227,6 +227,7 @@ def build_tracking_test_loader(cfg,
                           cfg.DATASET.TEST.VERSIONS, cfg.DATASET.TEST.SPLITS)
     if isinstance(dataset, list):
         dataset = DatasetFromList(dataset, copy=False)
+    # TRACED:
     if sampler is None:
         sampler = InferenceSampler(len(dataset))
     # Always use 1 sequence per worker during inference since this is the
@@ -240,6 +241,7 @@ def build_tracking_test_loader(cfg,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
     )
+
     return data_loader
 
 

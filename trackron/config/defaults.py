@@ -129,8 +129,9 @@ _C.SOLVER.LR_SCHEDULER.WARMUP_LR = 0.000001
 _C.SOLVER.LR_SCHEDULER.COOL_DOWN = 0
 
 # ---------------------------------------------------------------------------- #
-# Specific test options
+# TRACED: Specific test options
 # ---------------------------------------------------------------------------- #
+# TRACED: 在 utt.yaml 中修改测试的相关数据集，具体参考 CN() 中的 load_yaml_with_base merge_from_other_cfg
 _C.TEST = CN()
 # For end-to-end tests to verify the expected accuracy.
 # Each item is [task, metric, value, tolerance]

@@ -110,11 +110,15 @@ def calc_seq_err_robust(pred_bb, anno_bb, dataset="otb", target_visible=None):
 
 def save_tracker_output(seq_name, out_dir: Path, output: dict):
     """Saves the output of the tracker."""
+    # TRACED: XBL add;
+    out_dir = out_dir / seq_name
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     base_results_path = out_dir / seq_name
 
     def save_bb(file, data):
         tracked_bb = np.array(data).astype(float)
-        np.savetxt(file, tracked_bb, delimiter='\t', fmt='%1.2f')
+        np.savetxt(file, tracked_bb, delimiter=',', fmt='%1.2f')
         # tracked_bb = np.array(data).astype(int)
         # np.savetxt(file, tracked_bb, delimiter='\t', fmt='%d')
 
@@ -134,19 +138,22 @@ def save_tracker_output(seq_name, out_dir: Path, output: dict):
                     ]
         return data_dict
 
+    # TRACED: 保存结果到文件
     for key, data in output.items():
         # If data is empty
         if not data:
             continue
+
         if key == 'target_bbox':
             if isinstance(data[0], (dict, OrderedDict)):
                 data_dict = _convert_dict(data)
 
                 for obj_id, d in data_dict.items():
+                    # TRACED: 多个目标加上后缀名以区分
                     bbox_file = '{}_{}.txt'.format(base_results_path, obj_id)
                     save_bb(bbox_file, d)
             else:
-                # Single-object mode
+                # TRACED: Single-object mode 单目标直接调用该处
                 bbox_file = '{}.txt'.format(base_results_path)
                 save_bb(bbox_file, data)
         elif key == 'time':
@@ -200,7 +207,7 @@ class SOTEvaluator(DatasetEvaluator):
     def reset(self):
         self._predictions = []
 
-    # TRACED 正式处理追踪的过程！
+    # TRACED: 正式处理追踪的过程！
     def process(self, inputs, outputs):
         prediction = {"sequence": inputs, "visible": inputs.target_visible}
         if self._output_dir is not None:
@@ -217,14 +224,14 @@ class SOTEvaluator(DatasetEvaluator):
         if self._do_evaluation:
             gt_boxes = inputs.ground_truth_rect
             if isinstance(gt_boxes, (dict, OrderedDict)):
-                ### TODO
+                ### TODO:
                 gt_boxes = list(gt_boxes.values())
             prediction['gt_boxes'] = torch.tensor(gt_boxes,
                                                   dtype=torch.float32)
         if len(prediction) > 1:
             self._predictions.append(prediction)
 
-    # TRACED
+    # TRACED:
     def evaluate(self):
         if not self._do_evaluation:
             return {}
@@ -295,7 +302,7 @@ class SOTEvaluator(DatasetEvaluator):
         # self._calculate_metrics(pred_boxes, gt_boxes)
         for seq_id, (pred_bb, anno_bb, target_visible) in enumerate(
                 zip(pred_boxes, gt_boxes, visibles)):
-            # Calculate measures
+            # TRACED: Calculate measures
             err_overlap, err_center, err_center_normalized, valid_frame = calc_seq_err_robust(
                 pred_bb, anno_bb, self._dataset_name, target_visible)
             avg_overlap_all[seq_id] = err_overlap[valid_frame].mean()
