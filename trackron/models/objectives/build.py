@@ -26,4 +26,4 @@ def build_objective(cfg):
     #     input_shape = ShapeSpec(channels=len(cfg.MODEL.PIXEL_MEAN))
 
     objective_name = cfg.NAME
-    return  OBJECTIVE_REGISTRY.get(objective_name)(cfg)
+    return OBJECTIVE_REGISTRY.get(objective_name)(cfg)

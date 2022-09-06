@@ -36,8 +36,8 @@ class TrackingCheckpointer(Checkpointer):
             **checkpointables,
         )
 
-    # TRACED checkpoint .pth error 解决
-    # BUG 模型没有保存 iteration!!! 无法重新加载训练！！！
+    # TRACED: checkpoint .pth error 解决
+    # BUG: 模型没有保存 iteration!!! 无法重新加载训练！！！
     def best_save(self, name: str, **kwargs: Any) -> None:
         """
         only save model parameters for best model
@@ -51,10 +51,10 @@ class TrackingCheckpointer(Checkpointer):
         # if name != 'model_final':
         #     super().save(name, **kwargs)
 
-        # TRACED: XBL ADD; 保存最好的模型！
+        # TRACED: XBL add; 保存最好的模型！
         data = {}
         data.update(kwargs)
-        basename = "best.pth"
+        basename = name
         save_file = os.path.join(self.save_dir, basename)
         assert os.path.basename(save_file) == basename, basename
         data["model"] = self.model.state_dict()

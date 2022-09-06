@@ -40,51 +40,51 @@
                 "utt",
                 "--eval-only",
                 "--num-gpus",
-                "1", // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
+                "3", // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
-                "CUDA_VISIBLE_DEVICES": "2"
+                "CUDA_VISIBLE_DEVICES": "0,1,2"
             }
         },
-        {
-            "name": "TEST-MOT",
-            "type": "python",
-            "request": "launch",
-            "program": "tools/train_net.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": [
-                "--config-file",
-                "configs/utt/utt.yaml",
-                "--config-func",
-                "utt",
-                "--mode",
-                "mot",
-                "--eval-only"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        },
-        {
-            "name": "TRAIN-MOT",
-            "type": "python",
-            "request": "launch",
-            "program": "tools/train_net.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": [
-                "--config-file",
-                "configs/utt/utt.yaml",
-                "--config-func",
-                "utt",
-                "--mode",
-                "mot",
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
-        },
+        // {
+        //     "name": "TEST-MOT",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "tools/train_net.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": true,
+        //     "args": [
+        //         "--config-file",
+        //         "configs/utt/utt.yaml",
+        //         "--config-func",
+        //         "utt",
+        //         "--mode",
+        //         "mot",
+        //         "--eval-only"
+        //     ],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}"
+        //     }
+        // },
+        // {
+        //     "name": "TRAIN-MOT",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "tools/train_net.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": true,
+        //     "args": [
+        //         "--config-file",
+        //         "configs/utt/utt.yaml",
+        //         "--config-func",
+        //         "utt",
+        //         "--mode",
+        //         "mot",
+        //     ],
+        //     "env": {
+        //         "PYTHONPATH": "${workspaceFolder}"
+        //     }
+        // },
     ]
 }

@@ -15,6 +15,7 @@ from .config import CfgNode as CN
 # Config definition
 # -----------------------------------------------------------------------------
 
+# XBL comment; CfgNode 的实例化，相关参数的配置，进行初始化等操作
 _C = CN()
 
 # The version number, to upgrade from old configs to new ones if any
@@ -54,7 +55,7 @@ _C.OBJECTIVE.NAME = 'DiMPObjective'
 _C.TRAINER = CN()
 
 # ---------------------------------------------------------------------------- #
-# Solver
+# TRACED: Solver
 # ---------------------------------------------------------------------------- #
 _C.SOLVER = CN()
 
@@ -112,7 +113,7 @@ _C.SOLVER.CLIP_GRADIENTS.NORM_TYPE = 2.0
 # To use AMP in inference, run inference under autocast()
 _C.SOLVER.AMP = CN({"ENABLED": False})
 
-#### FOR LR_SCHEDULER
+#### TRACED: FOR LR_SCHEDULER
 _C.SOLVER.LR_SCHEDULER = CN()
 _C.SOLVER.LR_SCHEDULER.NAME = "step"
 _C.SOLVER.LR_SCHEDULER.LR_NOISE = None
@@ -131,7 +132,7 @@ _C.SOLVER.LR_SCHEDULER.COOL_DOWN = 0
 # ---------------------------------------------------------------------------- #
 # TRACED: Specific test options
 # ---------------------------------------------------------------------------- #
-# TRACED: 在 utt.yaml 中修改测试的相关数据集，具体参考 CN() 中的 load_yaml_with_base merge_from_other_cfg
+# XBL comment; 在 utt.yaml 中修改测试的相关数据集，具体参考 CN() 中的 load_yaml_with_base merge_from_other_cfg
 _C.TEST = CN()
 # For end-to-end tests to verify the expected accuracy.
 # Each item is [task, metric, value, tolerance]

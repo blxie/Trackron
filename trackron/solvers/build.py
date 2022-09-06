@@ -288,6 +288,7 @@ def get_default_optimizer_params(
     return params
 
 
+# TRACED: scheduler 相关设置
 def build_lr_scheduler(
         cfg: CfgNode, optimizer: torch.optim.Optimizer
 ) -> torch.optim.lr_scheduler._LRScheduler:
@@ -311,17 +312,18 @@ def build_lr_scheduler(
     lr_scheduler = None
     if scheduler_name == 'cosine':
         num_iters = num_iters - cfg.SOLVER.LR_SCHEDULER.COOL_DOWN
+        # TRACED: 使用 cosine 学习率衰减损失更加平滑
         lr_scheduler = CosineLRScheduler(
             optimizer,
             t_initial=num_iters,
-            # XBL comment,
+            # XBL comment;
             # t_mul=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_MUL,
             lr_min=cfg.SOLVER.LR_SCHEDULER.LR_MIN,
-            # XBL comment,
+            # XBL comment;
             # decay_rate=cfg.SOLVER.LR_SCHEDULER.DECAY_RATE,
-            warmup_lr_init=cfg.SOLVER.LR_SCHEDULER.WARMUP_LR,
-            warmup_t=cfg.SOLVER.LR_SCHEDULER.WARMUP_ITERS,
             cycle_limit=cfg.SOLVER.LR_SCHEDULER.LR_CYCLE_LIMIT,
+            warmup_t=cfg.SOLVER.LR_SCHEDULER.WARMUP_ITERS,
+            warmup_lr_init=cfg.SOLVER.LR_SCHEDULER.WARMUP_LR,
             t_in_epochs=False,
             noise_range_t=noise_range,
             noise_pct=cfg.SOLVER.LR_SCHEDULER.LR_NOISE_PCT,

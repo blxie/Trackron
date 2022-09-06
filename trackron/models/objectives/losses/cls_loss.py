@@ -1,15 +1,52 @@
 import torch.nn as nn
 import torch
+
+from abc import ABC
 from torch.nn import functional as F
 from trackron.config import configurable
 from .build import CLS_LOSS_REGISTRY
 
+
+@CLS_LOSS_REGISTRY.register()
+class FocalLoss(nn.Module, ABC):
+
+    @configurable
+    def __init__(self, alpha=2, beta=4):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.beta = beta
+
+    def forward(self, prediction, target):
+        positive_index = target.eq(1).float()
+        negative_index = target.lt(1).float()
+
+        negative_weights = torch.pow(1 - target, self.beta)
+        # clamp min value is set to 1e-12 to maintain the numerical stability
+        prediction = torch.clamp(prediction, 1e-12)
+
+        positive_loss = torch.log(prediction) * torch.pow(
+            1 - prediction, self.alpha) * positive_index
+        negative_loss = torch.log(1 - prediction) * torch.pow(
+            prediction, self.alpha) * negative_weights * negative_index
+
+        num_positive = positive_index.float().sum()
+        positive_loss = positive_loss.sum()
+        negative_loss = negative_loss.sum()
+
+        if num_positive == 0:
+            loss = -negative_loss
+        else:
+            loss = -(positive_loss + negative_loss) / num_positive
+
+        return loss
+
+
 @CLS_LOSS_REGISTRY.register()
 class LBHinge(nn.Module):
 
-  @configurable
-  def __init__(self, error_metric=nn.MSELoss(), threshold=None, clip=None):
-    """Loss that uses a 'hinge' on the lower bound.
+    @configurable
+    def __init__(self, error_metric=nn.MSELoss(), threshold=None, clip=None):
+        """Loss that uses a 'hinge' on the lower bound.
         This means that for samples with a label value smaller than the threshold, the loss is zero if the prediction is
         also smaller than that threshold.
         args:
@@ -17,32 +54,33 @@ class LBHinge(nn.Module):
             threshold:  Threshold to use for the hinge.
             clip:  Clip the loss if it is above this value.
         """
-    super().__init__()
-    self.error_metric = error_metric
-    self.threshold = threshold if threshold is not None else -100
-    self.clip = clip
+        super().__init__()
+        self.error_metric = error_metric
+        self.threshold = threshold if threshold is not None else -100
+        self.clip = clip
 
-  @classmethod
-  def from_config(cls, cfg):
-    return {"threshold": cfg.LOSS_CLS_THRESHOLD}
+    @classmethod
+    def from_config(cls, cfg):
+        return {"threshold": cfg.LOSS_CLS_THRESHOLD}
 
-  def forward(self, prediction, label):
-    negative_mask = (label < self.threshold).float()
-    positive_mask = (1.0 - negative_mask)
+    def forward(self, prediction, label):
+        negative_mask = (label < self.threshold).float()
+        positive_mask = (1.0 - negative_mask)
 
-    prediction = negative_mask * \
-        F.relu(prediction) + positive_mask * prediction
+        prediction = negative_mask * \
+            F.relu(prediction) + positive_mask * prediction
 
-    loss = self.error_metric(prediction, positive_mask * label)
+        loss = self.error_metric(prediction, positive_mask * label)
 
-    if self.clip is not None:
-      loss = torch.min(loss, torch.tensor([self.clip], device=loss.device))
-    return loss
+        if self.clip is not None:
+            loss = torch.min(loss, torch.tensor([self.clip],
+                                                device=loss.device))
+        return loss
 
 
 @CLS_LOSS_REGISTRY.register()
 class ContraLoss(nn.Module):
-  """Loss that uses a 'hinge' on the lower bound.
+    """Loss that uses a 'hinge' on the lower bound.
     This means that for samples with a label value smaller than the threshold, the loss is zero if the prediction is
     also smaller than that threshold.
     args:
@@ -51,34 +89,34 @@ class ContraLoss(nn.Module):
         clip:  Clip the loss if it is above this value.
     """
 
-  @configurable
-  def __init__(self, threshold=0.05, clip=None):
-    super().__init__()
-    # self.error_metric = error_metric
-    self.threshold = threshold
-    self.clip = clip
+    @configurable
+    def __init__(self, threshold=0.05, clip=None):
+        super().__init__()
+        # self.error_metric = error_metric
+        self.threshold = threshold
+        self.clip = clip
 
-  @classmethod
-  def from_config(cls, cfg):
-    return {"threshold": cfg.LOSS_CLS_THRESHOLD}
+    @classmethod
+    def from_config(cls, cfg):
+        return {"threshold": cfg.LOSS_CLS_THRESHOLD}
 
-  def forward(self, prediction, label):
-    negative_mask = (label < self.threshold).float()
-    positive_mask = (1.0 - negative_mask)
+    def forward(self, prediction, label):
+        negative_mask = (label < self.threshold).float()
+        positive_mask = (1.0 - negative_mask)
 
-    # shift = prediction.mean(dim=(-2,-1), keepdim=True)
-    shift = prediction.max(-1, keepdim=True)[0].max(-2, keepdim=True)[0]
-    p_exp = (prediction - shift).exp()
-    # log_sum = torch.logsumexp(prediction.view, dim=(-2,-1))
-    log_sum = torch.log(p_exp.sum(dim=(-2, -1)).clamp_(1e-7))
-    log_pos = torch.log((p_exp * positive_mask).sum(dim=(-2, -1)).clamp_(1e-7))
-    loss = (log_sum - log_pos).mean()
+        # shift = prediction.mean(dim=(-2,-1), keepdim=True)
+        shift = prediction.max(-1, keepdim=True)[0].max(-2, keepdim=True)[0]
+        p_exp = (prediction - shift).exp()
+        # log_sum = torch.logsumexp(prediction.view, dim=(-2,-1))
+        log_sum = torch.log(p_exp.sum(dim=(-2, -1)).clamp_(1e-7))
+        log_pos = torch.log(
+            (p_exp * positive_mask).sum(dim=(-2, -1)).clamp_(1e-7))
+        loss = (log_sum - log_pos).mean()
 
-    if self.clip is not None:
-      loss = torch.min(loss, torch.tensor([self.clip], device=loss.device))
-    return loss
-
-
+        if self.clip is not None:
+            loss = torch.min(loss, torch.tensor([self.clip],
+                                                device=loss.device))
+        return loss
 
 
 def get_cls_loss(pred, label, select):

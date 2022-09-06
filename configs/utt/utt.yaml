@@ -1,6 +1,7 @@
 MODEL:
     META_ARCHITECTURE: "UnifiedTransformerTracker2"
     # WEIGHTS: "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+    # WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/best.pth"
     WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
     BACKBONE:
         NAME: "resnet50"
@@ -63,19 +64,17 @@ SOT:
             SCALE_JITTER: 0.5
             FRAMES: 3
         TEST:
-            # DATASET_NAMES: ["lasot"]
-            DATASET_NAMES: ["trackingnet"]
-            SPLITS: [""]
+            DATASET_NAMES: ["lasot"]
             # DATASET_NAMES: ["got10k"]
-            # SPLITS: ["test"]
+            # DATASET_NAMES: ["trackingnet"]
+            SPLITS: [""]
             VERSIONS: [""]
 
     DATALOADER:
         NUM_WORKERS: 0
         STACK_DIM: 0
         COLLATE_FN: "trival"
-        # BATCH_SIZE: 4
-        # 配合 GPU 数量，能够被整除
+        # XBL changed; 配合 GPU 数量，能够被整除
         BATCH_SIZE: 24
 
 MOT:
@@ -110,18 +109,18 @@ MOT:
 
 # TRACED: 训练相关设置
 SOLVER:
-    MAX_ITER: 500000
-    # MAX_ITER: 200000
+    # XBL changed;
+    MAX_ITER: 400000
     BASE_LR: 1e-4
     OPTIMIZER_NAME: "adamw"
     LR_SCHEDULER:
         NAME: "cosine"
+        # XBL comment; lr >= 1e-6 custom in DL!
         WARMUP_ITERS: 2000
         WARMUP_LR: 1e-6
         LR_MIN: 1e-6
-    # TRACED: XBL comment;
-    CHECKPOINT_PERIOD: 1000
-    # CHECKPOINT_PERIOD: 10  # debug
+    # XBL comment; debug/run
+    CHECKPOINT_PERIOD: 500
     CLIP_GRADIENTS:
         ENABLED: False
         CLIP_TYPE: "norm"
@@ -135,7 +134,8 @@ SEED: 0
 
 TEST:
     EVAL_PERIOD: 0
-    ETEST_PERIOD: 80000
+    # XBL changed; 8 --> 10
+    ETEST_PERIOD: 100000
 
 TRACKER:
     NAME: "SiameseTracker"

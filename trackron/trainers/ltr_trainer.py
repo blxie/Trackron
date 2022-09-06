@@ -8,7 +8,15 @@ import time
 
 
 class LTRTrainer(DefaultTrainer):
-    def __init__(self, cfg, model, objective, loaders, optimizer, settings, lr_scheduler=None):
+
+    def __init__(self,
+                 cfg,
+                 model,
+                 objective,
+                 loaders,
+                 optimizer,
+                 settings,
+                 lr_scheduler=None):
         """
         args:
             objective - The objective for training the network
@@ -18,24 +26,31 @@ class LTRTrainer(DefaultTrainer):
             settings - Training settings
             lr_scheduler - Learning rate scheduler
         """
-        super().__init__(cfg, model, objective, loaders, optimizer, lr_scheduler)
+        super().__init__(cfg, model, objective, loaders, optimizer,
+                         lr_scheduler)
 
         self._set_default_settings()
 
         # Initialize statistics variables
-        self.stats = OrderedDict({loader.name: None for loader in self.loaders})
+        self.stats = OrderedDict(
+            {loader.name: None
+             for loader in self.loaders})
 
         # Initialize tensorboard
-        tensorboard_writer_dir = os.path.join(self.settings.env.tensorboard_dir, self.settings.project_path)
-        self.tensorboard_writer = TensorboardWriter(tensorboard_writer_dir, [l.name for l in loaders])
+        tensorboard_writer_dir = os.path.join(
+            self.settings.env.tensorboard_dir, self.settings.project_path)
+        self.tensorboard_writer = TensorboardWriter(tensorboard_writer_dir,
+                                                    [l.name for l in loaders])
 
         self.move_data_to_gpu = getattr(settings, 'move_data_to_gpu', True)
 
     def _set_default_settings(self):
         # Dict of all default values
-        default = {'print_interval': 10,
-                   'print_stats': None,
-                   'description': ''}
+        default = {
+            'print_interval': 10,
+            'print_stats': None,
+            'description': ''
+        }
 
         for param, default_value in default.items():
             if getattr(self.settings, param, None) is None:
@@ -91,8 +106,11 @@ class LTRTrainer(DefaultTrainer):
 
     def _update_stats(self, new_stats: OrderedDict, batch_size, loader):
         # Initialize stats if not initialized yet
-        if loader.name not in self.stats.keys() or self.stats[loader.name] is None:
-            self.stats[loader.name] = OrderedDict({name: AverageMeter() for name in new_stats.keys()})
+        if loader.name not in self.stats.keys(
+        ) or self.stats[loader.name] is None:
+            self.stats[loader.name] = OrderedDict(
+                {name: AverageMeter()
+                 for name in new_stats.keys()})
 
         for name, val in new_stats.items():
             if name not in self.stats[loader.name].keys():
@@ -106,13 +124,16 @@ class LTRTrainer(DefaultTrainer):
         average_fps = self.num_frames / (current_time - self.start_time)
         self.prev_time = current_time
         if i % self.settings.print_interval == 0 or i == loader.__len__():
-            print_str = '[%s: %d, %d / %d] ' % (loader.name, self.epoch, i, loader.__len__())
+            print_str = '[%s: %d, %d / %d] ' % (loader.name, self.epoch, i,
+                                                loader.__len__())
             print_str += 'FPS: %.1f (%.1f)  ,  ' % (average_fps, batch_fps)
             for name, val in self.stats[loader.name].items():
-                if (self.settings.print_stats is None or name in self.settings.print_stats) and hasattr(val, 'avg'):
+                if (self.settings.print_stats is None or name
+                        in self.settings.print_stats) and hasattr(val, 'avg'):
                     print_str += '%s: %.5f  ,  ' % (name, val.avg)
             print(print_str[:-5])
 
+    # TRACED: 记录学习率！
     def _stats_new_epoch(self):
         # Record learning rate
         for loader in self.loaders:
@@ -133,6 +154,8 @@ class LTRTrainer(DefaultTrainer):
 
     def _write_tensorboard(self):
         if self.epoch == 1:
-            self.tensorboard_writer.write_info(self.settings.module_name, self.settings.script_name, self.settings.description)
+            self.tensorboard_writer.write_info(self.settings.module_name,
+                                               self.settings.script_name,
+                                               self.settings.description)
 
         self.tensorboard_writer.write_epoch(self.stats, self.epoch)

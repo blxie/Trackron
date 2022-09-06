@@ -122,7 +122,7 @@ class TrackingActor:
             elif data['key'] == 'ArrowRight' and self.pause_mode:
                 self.step = True
 
-    # TRACED 运行时调用此处，执行追踪！
+    # TRACED: 运行时调用此处，执行追踪！
     def __call__(self, seq, mode='sot', *args, **kwargs):
         # Get init information
         init_info = seq.init_info()
@@ -200,7 +200,7 @@ class TrackingActor:
         else:
             raise NotImplementedError
 
-    # TRACED run tracking!!!
+    # TRACED: run tracking!!!
     def _track_sequence(
             self,
             seq,

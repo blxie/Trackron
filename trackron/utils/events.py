@@ -257,6 +257,7 @@ class CommonMetricPrinter(EventWriter):
             max_mem_mb = None
 
         # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
+        # TRACED: 输出日志！
         self.logger.info(
             " {eta}iter: {iter}  {losses} {metrics} {time}{data_time}lr: {lr}  {memory}"
             .format(

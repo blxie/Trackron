@@ -74,6 +74,8 @@ python setup.py develop
 
 > `scheduler` 修改：[Swin transformer TypeError: **init**() got an unexpected keyword argument ‘t_mul‘\_3DYour 的博客-CSDN 博客](https://blog.csdn.net/abc1831939662/article/details/123477853) 直接注释 提示缺少的参数
 
+`trackron/solvers/build.py`
+
 ```python
 lr_scheduler = CosineLRScheduler(
             optimizer,
@@ -199,8 +201,29 @@ WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
 
 ### `ERROR` 解决
 
+> Q: 默认保存的模型只含有 model 相关的参数，没有学习率、迭代次数、优化器等相关参数
+
+A: 是作者重新写了一个类继承了 `fvcore` 中的 `Checkpointer` 类，重写了 `save` 函数，导致父类的不起作用！
+
+解决方法很简单：要么就对继承的类的函数进行重命名，要么就把其中覆写的部分删除！
+
 - `trackron/checkpoint/tracking_checkpoint.py`: `func save()`
 - `/home/guest/anaconda3/envs/trackron/lib/python3.8/site-packages/fvcore/common/checkpoint.py`: `meta` 官方的 `fvcore`
 
 > 参考链接 1：[Py 之 fvcore：fvcore 库的简介、安装、使用方法之详细攻略\_一个处女座的程序猿的博客-CSDN 博客\_fvcore 安装](https://blog.csdn.net/qq_41185868/article/details/103881195)
 > 参考链接 2：[How to resume training from last checkpoint? · Issue #148 · facebookresearch/detectron2](https://github.com/facebookresearch/detectron2/issues/148)
+
+---
+> Q: 有关 `cosine` 学习率不变的问题
+
+调试：`trackron/trainers/ltr_trainer.py _stats_new_epoch()` 记录了学习率的变化！从这里入手；
+
+*注意：*调试的时候如果一个 `GPU` 可以带动就用一张，否则才使用多张！
+
+> Q: 将训练设置为：`num_gpu=2, batch_size=24` 时，`loss` 直接从原来的 `0.3-0.4` 突变到 `0.6~` !
+
+个人猜想：总的损失分配到每一个 `GPU` 上的平均损失，这样计算可能不是很准确！不过也有可能：`0.6 * 2 = 1.2 = 0.4 * 3`
+
+> Q: lr >= 0.6 否则再怎么缩小也只会使得训练越来越差！
+
+实验中将 lr 每 500iter 减小 1e-4 * 0.05，然而实际效果并不好，训练到 560000 左右后，模型的准确率大约低了 1 个百分点！

@@ -24,10 +24,8 @@ __all__ = [
 ]
 
 
-
-
 class DefaultTrainer(TrainerBase):
-  """
+    """
     A trainer with default training logic. It does the following:
 
     1. Create a :class:`SimpleTrainer` using model, optimizer, dataloader
@@ -69,8 +67,8 @@ class DefaultTrainer(TrainerBase):
         cfg (CfgNode):
     """
 
-  def __init__(self, cfg, model, loaders, optimizer, lr_scheduler=None):
-    """
+    def __init__(self, cfg, model, loaders, optimizer, lr_scheduler=None):
+        """
         args:
             cfg (CfgNode):
             objective - The objective for training the network
@@ -81,41 +79,41 @@ class DefaultTrainer(TrainerBase):
             lr_scheduler - Learning rate scheduler
         """
 
-    super().__init__()
-    logger = logging.getLogger("trackron")
-    if not logger.isEnabledFor(
-        logging.INFO):  # setup_logger is not called for d2
-      setup_logger()
-    cfg = DefaultTrainer.auto_scale_workers(cfg, comm.get_world_size())
+        super().__init__()
+        logger = logging.getLogger("trackron")
+        if not logger.isEnabledFor(
+                logging.INFO):  # setup_logger is not called for d2
+            setup_logger()
+        cfg = DefaultTrainer.auto_scale_workers(cfg, comm.get_world_size())
 
-    # Assume these objects must be constructed in this order.
-    # self.model = model
-    # self.objective = objective
-    # self.optimizer = optimizer
-    self.scheduler = lr_scheduler
-    train_loader = loaders[0]
+        # Assume these objects must be constructed in this order.
+        # self.model = model
+        # self.objective = objective
+        # self.optimizer = optimizer
+        self.scheduler = lr_scheduler
+        train_loader = loaders[0]
 
-    self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
-        model, train_loader, optimizer)
+        self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else
+                         SimpleTrainer)(model, train_loader, optimizer)
 
-    # Assume no other objects need to be checkpointed.
-    # We can later make it checkpoint the stateful hooks
-    self.checkpointer = TrackingCheckpointer(
-        # Assume you want to save checkpoints together with logs/statistics
-        model,
-        cfg.OUTPUT_DIR,
-        trainer=weakref.proxy(self)
-        # optimizer=optimizer,
-        # lr_scheduler=lr_scheduler
-    )
-    self.start_iter = 0
-    self.max_iter = cfg.SOLVER.MAX_ITER
-    self.cfg = cfg
+        # Assume no other objects need to be checkpointed.
+        # We can later make it checkpoint the stateful hooks
+        self.checkpointer = TrackingCheckpointer(
+            # Assume you want to save checkpoints together with logs/statistics
+            model,
+            cfg.OUTPUT_DIR,
+            trainer=weakref.proxy(self)
+            # optimizer=optimizer,
+            # lr_scheduler=lr_scheduler
+        )
+        self.start_iter = 0
+        self.max_iter = cfg.SOLVER.MAX_ITER
+        self.cfg = cfg
 
-    self.register_hooks(self.build_hooks())
+        self.register_hooks(self.build_hooks())
 
-  def resume_or_load(self, resume=True):
-    """
+    def resume_or_load(self, resume=True):
+        """
         If `resume==True` and `cfg.OUTPUT_DIR` contains the last checkpoint (defined by
         a `last_checkpoint` file), resume from the file. Resuming means loading all
         available states (eg. optimizer and scheduler) and update iteration counter
@@ -128,34 +126,35 @@ class DefaultTrainer(TrainerBase):
         Args:
             resume (bool): whether to do resume or not
         """
-    checkpoint = self.checkpointer.resume_or_load(self.cfg.MODEL.WEIGHTS,
-                                                  resume=resume)
-    if resume and self.checkpointer.has_checkpoint():
-      self.start_iter = self.iter + 1
-      # self.start_iter = checkpoint.get("iteration", -1) + 1
-      # The checkpoint stores the training iteration that just finished, thus we start
-      # at the next iteration (or iter zero if there's no checkpoint).
-    # if isinstance(self.model, DistributedDataParallel):
-      # broadcast loaded data/model from the first rank, because other
-      # machines may not have access to the checkpoint file
-      # if TORCH_VERSION >= (1, 7):
+        checkpoint = self.checkpointer.resume_or_load(self.cfg.MODEL.WEIGHTS,
+                                                      resume=resume)
+        if resume and self.checkpointer.has_checkpoint():
+            self.start_iter = self.iter + 1
+            # self.start_iter = checkpoint.get("iteration", -1) + 1
+            # The checkpoint stores the training iteration that just finished, thus we start
+            # at the next iteration (or iter zero if there's no checkpoint).
+        # if isinstance(self.model, DistributedDataParallel):
+        # broadcast loaded data/model from the first rank, because other
+        # machines may not have access to the checkpoint file
+        # if TORCH_VERSION >= (1, 7):
         # self.model._sync_params_and_buffers()
-      # self.start_iter = comm.all_gather(self.start_iter)[0]
+        # self.start_iter = comm.all_gather(self.start_iter)[0]
 
-  def build_hooks(self):
-    """
+    def build_hooks(self):
+        """
         Build a list of default hooks, including timing, evaluation,
         checkpointing, lr scheduling, precise BN, writing events.
 
         Returns:
             list[HookBase]:
         """
-    cfg = self.cfg.clone()
-    cfg.defrost()
-    cfg.DATALOADER.NUM_WORKERS = 0  # save some memory and time for PreciseBN
+        cfg = self.cfg.clone()
+        cfg.defrost()
+        cfg.DATALOADER.NUM_WORKERS = 0  # save some memory and time for PreciseBN
 
-    ret = [
+        ret = [
             hooks.IterationTimer(),
+            # TRACED: lr
             hooks.LRScheduler(),
             # hooks.PreciseBN(
             #     # Run at the same freq as (but before) evaluation.
@@ -169,27 +168,29 @@ class DefaultTrainer(TrainerBase):
             # else None,
         ]
 
-    # Do PreciseBN before checkpointer, because it updates the model and need to
-    # be saved by checkpointer.
-    # This is not always the best: if checkpointing has a different frequency,
-    # some checkpoints may have more precise statistics than others.
-    if comm.is_main_process():
-        ret.append(hooks.PeriodicCheckpointer(self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD))
+        # Do PreciseBN before checkpointer, because it updates the model and need to
+        # be saved by checkpointer.
+        # This is not always the best: if checkpointing has a different frequency,
+        # some checkpoints may have more precise statistics than others.
+        if comm.is_main_process():
+            ret.append(
+                hooks.PeriodicCheckpointer(self.checkpointer,
+                                           cfg.SOLVER.CHECKPOINT_PERIOD))
 
-    # def test_and_save_results():
-    #   self._last_eval_results = self.test(self.cfg, self.model)
-    #   return self._last_eval_results
+        # def test_and_save_results():
+        #   self._last_eval_results = self.test(self.cfg, self.model)
+        #   return self._last_eval_results
 
-    # ret.append(hooks.EvalHook(cfg.TEST.EVAL_PERIOD, test_and_save_results))
+        # ret.append(hooks.EvalHook(cfg.TEST.EVAL_PERIOD, test_and_save_results))
 
-    if comm.is_main_process():
-      # Here the default print/log frequency of each writer is used.
-      # run writers in the end, so that evaluation metrics are written
-      ret.append(hooks.PeriodicWriter(self.build_writers(), period=20))
-    return ret
+        if comm.is_main_process():
+            # Here the default print/log frequency of each writer is used.
+            # run writers in the end, so that evaluation metrics are written
+            ret.append(hooks.PeriodicWriter(self.build_writers(), period=20))
+        return ret
 
-  def build_writers(self):
-    """
+    def build_writers(self):
+        """
         Build a list of writers to be used using :func:`default_writers()`.
         If you'd like a different list of writers, you can overwrite it in
         your trainer.
@@ -197,43 +198,43 @@ class DefaultTrainer(TrainerBase):
         Returns:
             list[EventWriter]: a list of :class:`EventWriter` objects.
         """
-    return default_writers(self.cfg.OUTPUT_DIR, self.max_iter)
+        return default_writers(self.cfg.OUTPUT_DIR, self.max_iter)
 
-  def train(self):
-    """
+    def train(self):
+        """
         Run training.
 
         Returns:
             OrderedDict of results, if evaluation is enabled. Otherwise None.
         """
-    super().train(self.start_iter, self.max_iter)
-    if len(self.cfg.TEST.EXPECTED_RESULTS) and comm.is_main_process():
-      assert hasattr(self, "_last_eval_results"
-                    ), "No evaluation results obtained during training!"
-      # verify_results(self.cfg, self._last_eval_results)
-      return self._last_eval_results
+        super().train(self.start_iter, self.max_iter)
+        if len(self.cfg.TEST.EXPECTED_RESULTS) and comm.is_main_process():
+            assert hasattr(self, "_last_eval_results"
+                           ), "No evaluation results obtained during training!"
+            # verify_results(self.cfg, self._last_eval_results)
+            return self._last_eval_results
 
-  def run_step(self):
-    self._trainer.iter = self.iter
-    self._trainer.run_step()
+    def run_step(self):
+        self._trainer.iter = self.iter
+        self._trainer.run_step()
 
-  @classmethod
-  def build_evaluator(cls, cfg, dataset_name):
-    """
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name):
+        """
         Returns:
             DatasetEvaluator or None
 
         It is not implemented by default.
         """
-    raise NotImplementedError("""
+        raise NotImplementedError("""
 If you want DefaultTrainer to automatically run evaluation,
 please implement `build_evaluator()` in subclasses (see train_net.py for example).
 Alternatively, you can call evaluation functions yourself (see Colab balloon tutorial for example).
 """)
 
-  @classmethod
-  def test(cls, cfg, model, evaluators=None):
-    """
+    @classmethod
+    def test(cls, cfg, model, evaluators=None):
+        """
         Args:
             cfg (CfgNode):
             model (nn.Module):
@@ -244,47 +245,48 @@ Alternatively, you can call evaluation functions yourself (see Colab balloon tut
         Returns:
             dict: a dict of result metrics
         """
-    logger = logging.getLogger(__name__)
-    if isinstance(evaluators, DatasetEvaluator):
-      evaluators = [evaluators]
-    if evaluators is not None:
-      assert len(cfg.DATASETS.TEST) == len(evaluators), "{} != {}".format(
-          len(cfg.DATASETS.TEST), len(evaluators))
+        logger = logging.getLogger(__name__)
+        if isinstance(evaluators, DatasetEvaluator):
+            evaluators = [evaluators]
+        if evaluators is not None:
+            assert len(
+                cfg.DATASETS.TEST) == len(evaluators), "{} != {}".format(
+                    len(cfg.DATASETS.TEST), len(evaluators))
 
-    results = OrderedDict()
-    for idx, dataset_name in enumerate(cfg.DATASETS.TEST):
-      data_loader = cls.build_test_loader(cfg, dataset_name)
-      # When evaluators are passed in as arguments,
-      # implicitly assume that evaluators can be created before data_loader.
-      if evaluators is not None:
-        evaluator = evaluators[idx]
-      else:
-        try:
-          evaluator = cls.build_evaluator(cfg, dataset_name)
-        except NotImplementedError:
-          logger.warn(
-              "No evaluator found. Use `DefaultTrainer.test(evaluators=)`, "
-              "or implement its `build_evaluator` method.")
-          results[dataset_name] = {}
-          continue
-      results_i = inference_on_dataset(model, data_loader, evaluator)
-      results[dataset_name] = results_i
-      if comm.is_main_process():
-        assert isinstance(
-            results_i, dict
-        ), "Evaluator must return a dict on the main process. Got {} instead.".format(
-            results_i)
-        logger.info(
-            "Evaluation results for {} in csv format:".format(dataset_name))
-        print_csv_format(results_i)
+        results = OrderedDict()
+        for idx, dataset_name in enumerate(cfg.DATASETS.TEST):
+            data_loader = cls.build_test_loader(cfg, dataset_name)
+            # When evaluators are passed in as arguments,
+            # implicitly assume that evaluators can be created before data_loader.
+            if evaluators is not None:
+                evaluator = evaluators[idx]
+            else:
+                try:
+                    evaluator = cls.build_evaluator(cfg, dataset_name)
+                except NotImplementedError:
+                    logger.warn(
+                        "No evaluator found. Use `DefaultTrainer.test(evaluators=)`, "
+                        "or implement its `build_evaluator` method.")
+                    results[dataset_name] = {}
+                    continue
+            results_i = inference_on_dataset(model, data_loader, evaluator)
+            results[dataset_name] = results_i
+            if comm.is_main_process():
+                assert isinstance(
+                    results_i, dict
+                ), "Evaluator must return a dict on the main process. Got {} instead.".format(
+                    results_i)
+                logger.info("Evaluation results for {} in csv format:".format(
+                    dataset_name))
+                print_csv_format(results_i)
 
-    if len(results) == 1:
-      results = list(results.values())[0]
-    return results
+        if len(results) == 1:
+            results = list(results.values())[0]
+        return results
 
-  @staticmethod
-  def auto_scale_workers(cfg, num_workers: int):
-    """
+    @staticmethod
+    def auto_scale_workers(cfg, num_workers: int):
+        """
         When the config is defined for certain number of workers (according to
         ``cfg.SOLVER.REFERENCE_WORLD_SIZE``) that's different from the number of
         workers currently in use, returns a new cfg where the total batch size
@@ -324,45 +326,48 @@ Alternatively, you can call evaluation functions yourself (see Colab balloon tut
         Returns:
             CfgNode: a new config. Same as original if ``cfg.SOLVER.REFERENCE_WORLD_SIZE==0``.
         """
-    old_world_size = cfg.SOLVER.REFERENCE_WORLD_SIZE
-    if old_world_size == 0 or old_world_size == num_workers:
-      return cfg
-    cfg = cfg.clone()
-    frozen = cfg.is_frozen()
-    cfg.defrost()
+        old_world_size = cfg.SOLVER.REFERENCE_WORLD_SIZE
+        if old_world_size == 0 or old_world_size == num_workers:
+            return cfg
+        cfg = cfg.clone()
+        frozen = cfg.is_frozen()
+        cfg.defrost()
 
-    assert (cfg.SOLVER.IMS_PER_BATCH %
-            old_world_size == 0), "Invalid REFERENCE_WORLD_SIZE in config!"
-    scale = num_workers / old_world_size
-    bs = cfg.SOLVER.IMS_PER_BATCH = int(round(cfg.SOLVER.IMS_PER_BATCH * scale))
-    lr = cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * scale
-    max_iter = cfg.SOLVER.MAX_ITER = int(round(cfg.SOLVER.MAX_ITER / scale))
-    warmup_iter = cfg.SOLVER.WARMUP_ITERS = int(
-        round(cfg.SOLVER.WARMUP_ITERS / scale))
-    cfg.SOLVER.STEPS = tuple(int(round(s / scale)) for s in cfg.SOLVER.STEPS)
-    cfg.TEST.EVAL_PERIOD = int(round(cfg.TEST.EVAL_PERIOD / scale))
-    cfg.SOLVER.CHECKPOINT_PERIOD = int(
-        round(cfg.SOLVER.CHECKPOINT_PERIOD / scale))
-    cfg.SOLVER.REFERENCE_WORLD_SIZE = num_workers  # maintain invariant
-    logger = logging.getLogger(__name__)
-    logger.info(
-        f"Auto-scaling the config to batch_size={bs}, learning_rate={lr}, "
-        f"max_iter={max_iter}, warmup={warmup_iter}.")
+        assert (cfg.SOLVER.IMS_PER_BATCH %
+                old_world_size == 0), "Invalid REFERENCE_WORLD_SIZE in config!"
+        scale = num_workers / old_world_size
+        bs = cfg.SOLVER.IMS_PER_BATCH = int(
+            round(cfg.SOLVER.IMS_PER_BATCH * scale))
+        lr = cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * scale
+        max_iter = cfg.SOLVER.MAX_ITER = int(round(cfg.SOLVER.MAX_ITER /
+                                                   scale))
+        warmup_iter = cfg.SOLVER.WARMUP_ITERS = int(
+            round(cfg.SOLVER.WARMUP_ITERS / scale))
+        cfg.SOLVER.STEPS = tuple(
+            int(round(s / scale)) for s in cfg.SOLVER.STEPS)
+        cfg.TEST.EVAL_PERIOD = int(round(cfg.TEST.EVAL_PERIOD / scale))
+        cfg.SOLVER.CHECKPOINT_PERIOD = int(
+            round(cfg.SOLVER.CHECKPOINT_PERIOD / scale))
+        cfg.SOLVER.REFERENCE_WORLD_SIZE = num_workers  # maintain invariant
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"Auto-scaling the config to batch_size={bs}, learning_rate={lr}, "
+            f"max_iter={max_iter}, warmup={warmup_iter}.")
 
-    if frozen:
-      cfg.freeze()
-    return cfg
+        if frozen:
+            cfg.freeze()
+        return cfg
 
 
 # Access basic attributes from the underlying trainer
 for _attr in ["model", "data_loader", "optimizer"]:
-  setattr(
-      DefaultTrainer,
-      _attr,
-      property(
-          # getter
-          lambda self, x=_attr: getattr(self._trainer, x),
-          # setter
-          lambda self, value, x=_attr: setattr(self._trainer, x, value),
-      ),
-  )
+    setattr(
+        DefaultTrainer,
+        _attr,
+        property(
+            # getter
+            lambda self, x=_attr: getattr(self._trainer, x),
+            # setter
+            lambda self, value, x=_attr: setattr(self._trainer, x, value),
+        ),
+    )

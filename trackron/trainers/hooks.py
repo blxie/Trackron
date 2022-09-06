@@ -38,47 +38,47 @@ Implement some common hooks.
 
 
 class CallbackHook(HookBase):
-  """
+    """
     Create a hook using callback functions provided by the user.
     """
 
-  def __init__(self,
-               *,
-               before_train=None,
-               after_train=None,
-               before_step=None,
-               after_step=None):
-    """
+    def __init__(self,
+                 *,
+                 before_train=None,
+                 after_train=None,
+                 before_step=None,
+                 after_step=None):
+        """
         Each argument is a function that takes one argument: the trainer.
         """
-    self._before_train = before_train
-    self._before_step = before_step
-    self._after_step = after_step
-    self._after_train = after_train
+        self._before_train = before_train
+        self._before_step = before_step
+        self._after_step = after_step
+        self._after_train = after_train
 
-  def before_train(self):
-    if self._before_train:
-      self._before_train(self.trainer)
+    def before_train(self):
+        if self._before_train:
+            self._before_train(self.trainer)
 
-  def after_train(self):
-    if self._after_train:
-      self._after_train(self.trainer)
-    # The functions may be closures that hold reference to the trainer
-    # Therefore, delete them to avoid circular reference.
-    del self._before_train, self._after_train
-    del self._before_step, self._after_step
+    def after_train(self):
+        if self._after_train:
+            self._after_train(self.trainer)
+        # The functions may be closures that hold reference to the trainer
+        # Therefore, delete them to avoid circular reference.
+        del self._before_train, self._after_train
+        del self._before_step, self._after_step
 
-  def before_step(self):
-    if self._before_step:
-      self._before_step(self.trainer)
+    def before_step(self):
+        if self._before_step:
+            self._before_step(self.trainer)
 
-  def after_step(self):
-    if self._after_step:
-      self._after_step(self.trainer)
+    def after_step(self):
+        if self._after_step:
+            self._after_step(self.trainer)
 
 
 class IterationTimer(HookBase):
-  """
+    """
     Track the time spent for each iteration (each run_step call in the trainer).
     Print a summary in the end of training.
 
@@ -89,98 +89,100 @@ class IterationTimer(HookBase):
     placed at the beginning of the list of hooks to obtain accurate timing.
     """
 
-  def __init__(self, warmup_iter=3):
-    """
+    def __init__(self, warmup_iter=3):
+        """
         Args:
             warmup_iter (int): the number of iterations at the beginning to exclude
                 from timing.
         """
-    self._warmup_iter = warmup_iter
-    self._step_timer = Timer()
-    self._start_time = time.perf_counter()
-    self._total_timer = Timer()
+        self._warmup_iter = warmup_iter
+        self._step_timer = Timer()
+        self._start_time = time.perf_counter()
+        self._total_timer = Timer()
 
-  def before_train(self):
-    self._start_time = time.perf_counter()
-    self._total_timer.reset()
-    self._total_timer.pause()
+    def before_train(self):
+        self._start_time = time.perf_counter()
+        self._total_timer.reset()
+        self._total_timer.pause()
 
-  def after_train(self):
-    logger = logging.getLogger(__name__)
-    total_time = time.perf_counter() - self._start_time
-    total_time_minus_hooks = self._total_timer.seconds()
-    hook_time = total_time - total_time_minus_hooks
+    def after_train(self):
+        logger = logging.getLogger(__name__)
+        total_time = time.perf_counter() - self._start_time
+        total_time_minus_hooks = self._total_timer.seconds()
+        hook_time = total_time - total_time_minus_hooks
 
-    num_iter = self.trainer.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        num_iter = self.trainer.iter + 1 - self.trainer.start_iter - self._warmup_iter
 
-    if num_iter > 0 and total_time_minus_hooks > 0:
-      # Speed is meaningful only after warmup
-      # NOTE this format is parsed by grep in some scripts
-      logger.info(
-          "Overall training speed: {} iterations in {} ({:.4f} s / it)".format(
-              num_iter,
-              str(datetime.timedelta(seconds=int(total_time_minus_hooks))),
-              total_time_minus_hooks / num_iter,
-          ))
+        if num_iter > 0 and total_time_minus_hooks > 0:
+            # Speed is meaningful only after warmup
+            # NOTE this format is parsed by grep in some scripts
+            logger.info(
+                "Overall training speed: {} iterations in {} ({:.4f} s / it)".
+                format(
+                    num_iter,
+                    str(datetime.timedelta(
+                        seconds=int(total_time_minus_hooks))),
+                    total_time_minus_hooks / num_iter,
+                ))
 
-    logger.info("Total training time: {} ({} on hooks)".format(
-        str(datetime.timedelta(seconds=int(total_time))),
-        str(datetime.timedelta(seconds=int(hook_time))),
-    ))
+        logger.info("Total training time: {} ({} on hooks)".format(
+            str(datetime.timedelta(seconds=int(total_time))),
+            str(datetime.timedelta(seconds=int(hook_time))),
+        ))
 
-  def before_step(self):
-    self._step_timer.reset()
-    self._total_timer.resume()
+    def before_step(self):
+        self._step_timer.reset()
+        self._total_timer.resume()
 
-  def after_step(self):
-    # +1 because we're in after_step, the current step is done
-    # but not yet counted
-    iter_done = self.trainer.iter - self.trainer.start_iter + 1
-    if iter_done >= self._warmup_iter:
-      sec = self._step_timer.seconds()
-      self.trainer.storage.put_scalars(time=sec)
-    else:
-      self._start_time = time.perf_counter()
-      self._total_timer.reset()
+    def after_step(self):
+        # +1 because we're in after_step, the current step is done
+        # but not yet counted
+        iter_done = self.trainer.iter - self.trainer.start_iter + 1
+        if iter_done >= self._warmup_iter:
+            sec = self._step_timer.seconds()
+            self.trainer.storage.put_scalars(time=sec)
+        else:
+            self._start_time = time.perf_counter()
+            self._total_timer.reset()
 
-    self._total_timer.pause()
+        self._total_timer.pause()
 
 
 class PeriodicWriter(HookBase):
-  """
+    """
     Write events to EventStorage (by calling ``writer.write()``) periodically.
 
     It is executed every ``period`` iterations and after the last iteration.
     Note that ``period`` does not affect how data is smoothed by each writer.
     """
 
-  def __init__(self, writers, period=20):
-    """
+    def __init__(self, writers, period=20):
+        """
         Args:
             writers (list[EventWriter]): a list of EventWriter objects
             period (int):
         """
-    self._writers = writers
-    for w in writers:
-      assert isinstance(w, EventWriter), w
-    self._period = period
+        self._writers = writers
+        for w in writers:
+            assert isinstance(w, EventWriter), w
+        self._period = period
 
-  def after_step(self):
-    if (self.trainer.iter + 1) % self._period == 0 or (
-        self.trainer.iter == self.trainer.max_iter - 1):
-      for writer in self._writers:
-        writer.write()
+    def after_step(self):
+        if (self.trainer.iter + 1) % self._period == 0 or (
+                self.trainer.iter == self.trainer.max_iter - 1):
+            for writer in self._writers:
+                writer.write()
 
-  def after_train(self):
-    for writer in self._writers:
-      # If any new data is found (e.g. produced by other after_train),
-      # write them before closing
-      writer.write()
-      writer.close()
+    def after_train(self):
+        for writer in self._writers:
+            # If any new data is found (e.g. produced by other after_train),
+            # write them before closing
+            writer.write()
+            writer.close()
 
 
 class PeriodicCheckpointer(_PeriodicCheckpointer, HookBase):
-  """
+    """
     Same as :class:`trackron.checkpoint.PeriodicCheckpointer`, but as a hook.
 
     Note that when used as a hook,
@@ -190,22 +192,22 @@ class PeriodicCheckpointer(_PeriodicCheckpointer, HookBase):
     It is executed every ``period`` iterations and after the last iteration.
     """
 
-  def before_train(self):
-    self.max_iter = self.trainer.max_iter
+    def before_train(self):
+        self.max_iter = self.trainer.max_iter
 
-  def after_step(self):
-    # No way to use **kwargs
-    self.step(self.trainer.iter)
+    def after_step(self):
+        # No way to use **kwargs
+        self.step(self.trainer.iter)
 
 
 class LRScheduler(HookBase):
-  """
+    """
     A hook which executes a torch builtin LR scheduler and summarizes the LR.
     It is executed after every iteration.
     """
 
-  def __init__(self, optimizer=None, scheduler=None):
-    """
+    def __init__(self, optimizer=None, scheduler=None):
+        """
         Args:
             optimizer (torch.optim.Optimizer):
             scheduler (torch.optim.LRScheduler or fvcore.common.param_scheduler.ParamScheduler):
@@ -214,62 +216,65 @@ class LRScheduler(HookBase):
 
         If any argument is not given, will try to obtain it from the trainer.
         """
-    self._optimizer = optimizer
-    self._scheduler = scheduler
+        self._optimizer = optimizer
+        self._scheduler = scheduler
 
-  def before_train(self):
-    self._optimizer = self._optimizer or self.trainer.optimizer
-    self._scheduler = self._scheduler or self.trainer.scheduler
-    # if isinstance(self._scheduler, ParamScheduler):
-    #   self._scheduler = LRMultiplier(
-    #       self._optimizer,
-    #       self._scheduler,
-    #       self.trainer.max_iter,
-    #       last_iter=self.trainer.iter - 1,
-    #   )
+    def before_train(self):
+        self._optimizer = self._optimizer or self.trainer.optimizer
+        self._scheduler = self._scheduler or self.trainer.scheduler
+        # if isinstance(self._scheduler, ParamScheduler):
+        #   self._scheduler = LRMultiplier(
+        #       self._optimizer,
+        #       self._scheduler,
+        #       self.trainer.max_iter,
+        #       last_iter=self.trainer.iter - 1,
+        #   )
 
-    # NOTE: some heuristics on what LR to summarize
-    # summarize the param group with most parameters
-    largest_group = max(len(g["params"]) for g in self._optimizer.param_groups)
+        # NOTE: some heuristics on what LR to summarize
+        # summarize the param group with most parameters
+        largest_group = max(
+            len(g["params"]) for g in self._optimizer.param_groups)
 
-    if largest_group == 1:
-      # If all groups have one parameter,
-      # then find the most common initial LR, and use it for summary
-      lr_count = Counter([g["lr"] for g in self._optimizer.param_groups])
-      lr = lr_count.most_common()[0][0]
-      for i, g in enumerate(self._optimizer.param_groups):
-        if g["lr"] == lr:
-          self._best_param_group_id = i
-          break
-    else:
-      for i, g in enumerate(self._optimizer.param_groups):
-        if len(g["params"]) == largest_group:
-          self._best_param_group_id = i
-          break
+        if largest_group == 1:
+            # If all groups have one parameter,
+            # then find the most common initial LR, and use it for summary
+            lr_count = Counter([g["lr"] for g in self._optimizer.param_groups])
+            lr = lr_count.most_common()[0][0]
+            for i, g in enumerate(self._optimizer.param_groups):
+                if g["lr"] == lr:
+                    self._best_param_group_id = i
+                    break
+        else:
+            for i, g in enumerate(self._optimizer.param_groups):
+                if len(g["params"]) == largest_group:
+                    self._best_param_group_id = i
+                    break
 
-  def after_step(self):
-    lr = self._optimizer.param_groups[self._best_param_group_id]["lr"]
-    self.trainer.storage.put_scalar("lr", lr, smoothing_hint=False)
-    self.scheduler.step_update(self.trainer.iter + 1)
+    # TRACED: 学习率更新
+    def after_step(self):
+        lr = self._optimizer.param_groups[self._best_param_group_id]["lr"]
+        self.trainer.storage.put_scalar("lr", lr, smoothing_hint=False)
+        # XBL comment; 找到 step_update(trackron/solvers/build.py build_lr_scheduler())
+        self.scheduler.step_update(self.trainer.iter + 1)
 
-  @property
-  def scheduler(self):
-    return self._scheduler or self.trainer.scheduler
+    @property
+    def scheduler(self):
+        return self._scheduler or self.trainer.scheduler
 
-  def state_dict(self):
-    # if isinstance(self.scheduler, torch.optim.lr_scheduler._LRScheduler):
-    return self.scheduler.state_dict()
-    # return {}
+    def state_dict(self):
+        # if isinstance(self.scheduler, torch.optim.lr_scheduler._LRScheduler):
+        return self.scheduler.state_dict()
+        # return {}
 
-  def load_state_dict(self, state_dict):
-    # if isinstance(self.scheduler, torch.optim.lr_scheduler._LRScheduler):
-    logger = logging.getLogger(__name__)
-    logger.info("Loading scheduler from state_dict ...")
-    self.scheduler.load_state_dict(state_dict)
+    def load_state_dict(self, state_dict):
+        # if isinstance(self.scheduler, torch.optim.lr_scheduler._LRScheduler):
+        logger = logging.getLogger(__name__)
+        logger.info("Loading scheduler from state_dict ...")
+        self.scheduler.load_state_dict(state_dict)
 
 
 class AutogradProfiler(HookBase):
-  """
+    """
     A hook which runs `torch.autograd.profiler.profile`.
 
     Examples:
@@ -291,8 +296,8 @@ class AutogradProfiler(HookBase):
         support ``cudaLaunchCooperativeKernelMultiDevice``.
     """
 
-  def __init__(self, enable_predicate, output_dir, *, use_cuda=True):
-    """
+    def __init__(self, enable_predicate, output_dir, *, use_cuda=True):
+        """
         Args:
             enable_predicate (callable[trainer -> bool]): a function which takes a trainer,
                 and returns whether to enable the profiler.
@@ -300,47 +305,48 @@ class AutogradProfiler(HookBase):
             output_dir (str): the output directory to dump tracing files.
             use_cuda (bool): same as in `torch.autograd.profiler.profile`.
         """
-    self._enable_predicate = enable_predicate
-    self._use_cuda = use_cuda
-    self._output_dir = output_dir
+        self._enable_predicate = enable_predicate
+        self._use_cuda = use_cuda
+        self._output_dir = output_dir
 
-  def before_step(self):
-    if self._enable_predicate(self.trainer):
-      self._profiler = torch.autograd.profiler.profile(use_cuda=self._use_cuda)
-      self._profiler.__enter__()
-    else:
-      self._profiler = None
+    def before_step(self):
+        if self._enable_predicate(self.trainer):
+            self._profiler = torch.autograd.profiler.profile(
+                use_cuda=self._use_cuda)
+            self._profiler.__enter__()
+        else:
+            self._profiler = None
 
-  def after_step(self):
-    if self._profiler is None:
-      return
-    self._profiler.__exit__(None, None, None)
-    Path.mkdir(self._output_dir)
-    out_file = os.path.join(
-        self._output_dir,
-        "profiler-trace-iter{}.json".format(self.trainer.iter))
-    if "://" not in out_file:
-      self._profiler.export_chrome_trace(out_file)
-    else:
-      # Support non-posix filesystems
-      with tempfile.TemporaryDirectory(prefix="trackron_profiler") as d:
-        tmp_file = os.path.join(d, "tmp.json")
-        self._profiler.export_chrome_trace(tmp_file)
-        with open(tmp_file) as f:
-          content = f.read()
-      with open(out_file, "w") as f:
-        f.write(content)
+    def after_step(self):
+        if self._profiler is None:
+            return
+        self._profiler.__exit__(None, None, None)
+        Path.mkdir(self._output_dir)
+        out_file = os.path.join(
+            self._output_dir,
+            "profiler-trace-iter{}.json".format(self.trainer.iter))
+        if "://" not in out_file:
+            self._profiler.export_chrome_trace(out_file)
+        else:
+            # Support non-posix filesystems
+            with tempfile.TemporaryDirectory(prefix="trackron_profiler") as d:
+                tmp_file = os.path.join(d, "tmp.json")
+                self._profiler.export_chrome_trace(tmp_file)
+                with open(tmp_file) as f:
+                    content = f.read()
+            with open(out_file, "w") as f:
+                f.write(content)
 
 
 class EvalHook(HookBase):
-  """
+    """
     Run an evaluation function periodically, and at the end of training.
 
     It is executed every ``eval_period`` iterations and after the last iteration.
     """
 
-  def __init__(self, eval_period, eval_function):
-    """
+    def __init__(self, eval_period, eval_function):
+        """
         Args:
             eval_period (int): the period to run `eval_function`. Set to 0 to
                 not evaluate periodically (but still after the last iteration).
@@ -352,49 +358,49 @@ class EvalHook(HookBase):
             If you would like only certain workers to perform evaluation,
             give other workers a no-op function (`eval_function=lambda: None`).
         """
-    self._period = eval_period
-    self._func = eval_function
+        self._period = eval_period
+        self._func = eval_function
 
-  def _do_eval(self):
-    results = self._func()
+    def _do_eval(self):
+        results = self._func()
 
-    if results:
-      assert isinstance(
-          results,
-          dict), "Eval function must return a dict. Got {} instead.".format(
-              results)
+        if results:
+            assert isinstance(
+                results, dict
+            ), "Eval function must return a dict. Got {} instead.".format(
+                results)
 
-      flattened_results = flatten_results_dict(results)
-      for k, v in flattened_results.items():
-        try:
-          v = float(v)
-        except Exception as e:
-          raise ValueError(
-              "[EvalHook] eval_function should return a nested dict of float. "
-              "Got '{}: {}' instead.".format(k, v)) from e
-      self.trainer.storage.put_scalars(**flattened_results,
-                                       smoothing_hint=False)
+            flattened_results = flatten_results_dict(results)
+            for k, v in flattened_results.items():
+                try:
+                    v = float(v)
+                except Exception as e:
+                    raise ValueError(
+                        "[EvalHook] eval_function should return a nested dict of float. "
+                        "Got '{}: {}' instead.".format(k, v)) from e
+            self.trainer.storage.put_scalars(**flattened_results,
+                                             smoothing_hint=False)
 
-    # Evaluation may take different time among workers.
-    # A barrier make them start the next iteration together.
-    comm.synchronize()
+        # Evaluation may take different time among workers.
+        # A barrier make them start the next iteration together.
+        comm.synchronize()
 
-  def after_step(self):
-    next_iter = self.trainer.iter + 1
-    if self._period > 0 and next_iter % self._period == 0:
-      self._do_eval()
+    def after_step(self):
+        next_iter = self.trainer.iter + 1
+        if self._period > 0 and next_iter % self._period == 0:
+            self._do_eval()
 
-  def after_train(self):
-    # This condition is to prevent the eval from running after a failed training
-    if self.trainer.iter + 1 >= self.trainer.max_iter:
-      self._do_eval()
-    # func is likely a closure that holds reference to the trainer
-    # therefore we clean it to avoid circular reference in the end
-    del self._func
+    def after_train(self):
+        # This condition is to prevent the eval from running after a failed training
+        if self.trainer.iter + 1 >= self.trainer.max_iter:
+            self._do_eval()
+        # func is likely a closure that holds reference to the trainer
+        # therefore we clean it to avoid circular reference in the end
+        del self._func
 
 
 class PreciseBN(HookBase):
-  """
+    """
     The standard implementation of BatchNorm uses EMA in inference, which is
     sometimes suboptimal.
     This class computes the true average of statistics rather than the moving average,
@@ -403,8 +409,8 @@ class PreciseBN(HookBase):
     It is executed every ``period`` iterations and after the last iteration.
     """
 
-  def __init__(self, period, model, data_loader, num_iter):
-    """
+    def __init__(self, period, model, data_loader, num_iter):
+        """
         Args:
             period (int): the period this hook is run, or 0 to not run during training.
                 The hook will always run in the end of training.
@@ -416,48 +422,51 @@ class PreciseBN(HookBase):
             num_iter (int): number of iterations used to compute the precise
                 statistics.
         """
-    self._logger = logging.getLogger(__name__)
-    if len(get_bn_modules(model)) == 0:
-      self._logger.info(
-          "PreciseBN is disabled because model does not contain BN layers in training mode."
-      )
-      self._disabled = True
-      return
+        self._logger = logging.getLogger(__name__)
+        if len(get_bn_modules(model)) == 0:
+            self._logger.info(
+                "PreciseBN is disabled because model does not contain BN layers in training mode."
+            )
+            self._disabled = True
+            return
 
-    self._model = model
-    self._data_loader = data_loader
-    self._num_iter = num_iter
-    self._period = period
-    self._disabled = False
+        self._model = model
+        self._data_loader = data_loader
+        self._num_iter = num_iter
+        self._period = period
+        self._disabled = False
 
-    self._data_iter = None
+        self._data_iter = None
 
-  def after_step(self):
-    next_iter = self.trainer.iter + 1
-    is_final = next_iter == self.trainer.max_iter
-    if is_final or (self._period > 0 and next_iter % self._period == 0):
-      self.update_stats()
+    def after_step(self):
+        next_iter = self.trainer.iter + 1
+        is_final = next_iter == self.trainer.max_iter
+        if is_final or (self._period > 0 and next_iter % self._period == 0):
+            self.update_stats()
 
-  def update_stats(self):
-    """
+    def update_stats(self):
+        """
         Update the model with precise statistics. Users can manually call this method.
         """
-    if self._disabled:
-      return
+        if self._disabled:
+            return
 
-    if self._data_iter is None:
-      self._data_iter = iter(self._data_loader)
+        if self._data_iter is None:
+            self._data_iter = iter(self._data_loader)
 
-    def data_loader():
-      for num_iter in itertools.count(1):
-        if num_iter % 100 == 0:
-          self._logger.info("Running precise-BN ... {}/{} iterations.".format(
-              num_iter, self._num_iter))
-        # This way we can reuse the same iterator
-        yield next(self._data_iter)
+        def data_loader():
+            for num_iter in itertools.count(1):
+                if num_iter % 100 == 0:
+                    self._logger.info(
+                        "Running precise-BN ... {}/{} iterations.".format(
+                            num_iter, self._num_iter))
+                # This way we can reuse the same iterator
+                yield next(self._data_iter)
 
-    with EventStorage():  # capture events in a new storage to discard them
-      self._logger.info(
-          "Running precise-BN for {} iterations...  ".format(self._num_iter) +
-          "Note that this could produce different statistics every time.")
-      update_bn_stats(self._model, data_loader(), self._num_iter)
+        with EventStorage():  # capture events in a new storage to discard them
+            self._logger.info(
+                "Running precise-BN for {} iterations...  ".format(
+                    self._num_iter) +
+                "Note that this could produce different statistics every time."
+            )
+            update_bn_stats(self._model, data_loader(), self._num_iter)

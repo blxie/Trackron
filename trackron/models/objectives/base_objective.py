@@ -1,8 +1,10 @@
 import torch.nn as nn
 
+
 class BaseObjective(nn.Module):
     """ Base class for objective. The objective class handles the passing of the data through the network
     and calculation the loss"""
+
     def __init__(self, loss_func, loss_weight=None):
         """
         args:
@@ -12,7 +14,6 @@ class BaseObjective(nn.Module):
         super().__init__()
         self.loss_func = loss_func
         self.loss_weight = loss_weight
-        
 
     def forward(self, data, results):
         """ Called in each training iteration. Should pass in input data through the network, calculate the loss, and

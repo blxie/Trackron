@@ -100,6 +100,7 @@ def do_test(cfg, model, tracking_mode, debug_level=-1):
     return results
 
 
+# XBL comment; 训练的时候 每20iter 进行一次测试评估 eval
 def do_val(val_iters, model, iteration=20):
     model.eval()
     metrics = {}
@@ -137,7 +138,9 @@ def forward_step(data_iters, model, max_fail=10, mode='sot'):
 
 def do_train(cfg, model, resume=False, tracking_mode='sot'):
     model.train()
+    # TRACED: 有关学习率的设置
     optimizer, scheduler = build_optimizer_scheduler(cfg, model)
+    # XBL add; 修改 已经保存的模型中的相关参数，使得最新配置生效
 
     checkpointer = TrackingCheckpointer(model,
                                         cfg.OUTPUT_DIR,
@@ -152,7 +155,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
         checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume)
     max_iter = cfg.SOLVER.MAX_ITER
 
-    # XBL add snapcodes; max_to_keep=3
+    # XBL add; max_to_keep=1
     periodic_checkpointer = PeriodicCheckpointer(checkpointer,
                                                  cfg.SOLVER.CHECKPOINT_PERIOD,
                                                  max_iter=max_iter,
@@ -223,10 +226,24 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
 
             optimizer.zero_grad()
             losses.backward()
+            # XBL comment; 应该先optimizer.step()，然后再scheduler.step()
+            # https://www.cvmart.net/community/detail/4000
             optimizer.step()
+            # TRACED: 学习率变化！cosine 为什么没有起作用
             storage.put_scalar("lr",
                                optimizer.param_groups[0]["lr"],
                                smoothing_hint=False)
+
+            # XBL add; BUG: 手动调整学习率，结果不理想！loss 一路飙升，loss >= 1e-6 !!!
+            # 必须按照此标准来训练！
+            # scheduler.lr_min = cfg.SOLVER.LR_SCHEDULER.LR_MIN
+            # if iteration % 1000 == 0:
+            #     scheduler.lr_min -= 0.005 * 1e-6
+
+            # TRACED: 出问题的地方，为什么 cosine lr 没有按照 utt.yaml 中的配置进行更新？！
+            # XBL comment; 是如何进行 step_update 的？该函数具体在哪里进行实现的？
+            # timm scheduler.step() 与 .step_update() 的区别？
+            # scheduler.step(iteration + 1)
             scheduler.step_update(iteration + 1)
 
             if (cfg.TEST.ETEST_PERIOD > 0 and
@@ -241,13 +258,14 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
                 for writer in writers:
                     writer.write()
 
+            # XBL add; save best.pth
             # 思路：每个模型都保存截至当前最小的损失值，如果当前损失值更小，就对best.pth进行更新
             if losses < best_loss:  # 如果当前损失值更小，就进行更新保存
-                best_loss = losses
-                checkpointer.best_save("model_best", loss=best_loss)
                 logger.info(
-                    "saving best checkpoint! best loss is {} < {}!".format(
-                        best_loss, losses))
+                    f"Saving best checkpoint! current loss is {losses} < {best_loss}!"
+                )
+                best_loss = losses
+                checkpointer.best_save("best.pth", loss=best_loss)
             # else:
             # logger.info(f"current loss {losses} > best loss {best_loss}!")
 
