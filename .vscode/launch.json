@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "TRAIN-SOT",
+            "name": "TRAIN-SOT-GPU3",
             "type": "python",
             "request": "launch",
             "program": "tools/train_net.py",
@@ -16,9 +16,87 @@
                 "configs/utt/utt.yaml",
                 "--config-func",
                 "utt",
-                "--resume", // ！！！从中断的地方开始继续训练
+                "--resume", // ！！！从中断的地方开始继续训练，如果重新开始训练注释掉！
                 "--num-gpus",
                 "3",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
+                "CUDA_VISIBLE_DEVICES": "0,1,2"
+            }
+        },
+        {
+            "name": "TRAIN-SOT-GPU2-352",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--config-file",
+                "configs/utt/utt.yaml",
+                "--config-func",
+                "utt",
+                "--resume",
+                "--num-gpus",
+                "2",
+                "--batch_size",
+                "16", // 2 张 GPU，2 * 8 = 16
+                "--output_dir",
+                "./outputs_gpu2_352",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
+                "CUDA_VISIBLE_DEVICES": "1,2"
+            }
+        },
+        {
+            "name": "TRAIN-SOT-GPU2-352-ConvNeXt",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--config-file",
+                "configs/utt/utt.yaml",
+                "--config-func",
+                "utt",
+                "--resume",
+                "--num-gpus",
+                "2",
+                "--batch_size",
+                "16", // 2 张 GPU，2 * 8 = 16
+                "--output_dir",
+                "./outputs_gpu2_352_convnext",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
+                "CUDA_VISIBLE_DEVICES": "1,2"
+            }
+        },
+        {
+            "name": "TRAIN-SOT-GPU3-352-ConvNeXt",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--config-file",
+                "configs/utt/utt.yaml",
+                "--config-func",
+                "utt",
+                // "--resume",
+                "--num-gpus",
+                "3",
+                "--batch_size",
+                "24", // 2 张 GPU，2 * 8 = 16
+                "--output_dir",
+                "./outputs_gpu3_352_convnext",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",

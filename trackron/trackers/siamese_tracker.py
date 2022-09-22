@@ -35,6 +35,7 @@ class SiameseTracker(BaseTracker):
 
     def setup(self):
         if self.tracking_mode != 'mot':
+            # TRACED: search image size
             self.image_sample_size = self.cfg.SOT.DATASET.SEARCH.SIZE
             self.search_area_scale = self.cfg.SOT.DATASET.SEARCH.FACTOR
 
@@ -60,7 +61,7 @@ class SiameseTracker(BaseTracker):
         self.target_sz = torch.Tensor([state[3], state[2]])
         self.image_sz = image.shape[:2]
 
-        # TRACED Crop Image
+        # TRACED: Crop Image
         template_arr, scale_factor, template_mask_arr = sample_target(
             image,
             info['init_bbox'],
@@ -366,7 +367,7 @@ class SiameseTracker(BaseTracker):
 
         tracks = list()
 
-        ### TRACED udpate tracking results
+        ### TRACED: udpate tracking results
         for idx in range(track_bboxes.shape[0]):
             if idx in self.tracks_dict and track_bboxes is not None:
                 if track_scores is None:
@@ -463,8 +464,10 @@ class SiameseTracker(BaseTracker):
         return copy.deepcopy(ret)
 
     def get_cropped_img_box(self, pos, sz, sample_pos, sample_scale):
-        """All inputs in original image coordinates.
-    Generates a box in the cropped image sample reference frame, in the xyxy format used by the model."""
+        """
+        All inputs in original image coordinates.
+        Generates a box in the cropped image sample reference frame, in the xyxy format used by the model.
+        """
         box_center = (pos - sample_pos) * sample_scale + (
             self.image_sample_size - 1) / 2
         box_sz = sz * sample_scale
@@ -476,7 +479,7 @@ class SiameseTracker(BaseTracker):
         self.visdom.register(score, 'heatmap', 2, name)
 
     def visualize_search(self, image, box=None):
-        ###box xyxy format
+        ### box xyxy format
         if box is not None:
             box = [box[0], box[1], box[2] - box[0], box[3] - box[1]]
             self.visdom.register((image, box), 'Tracking', 1, 'Search')

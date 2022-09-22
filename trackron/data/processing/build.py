@@ -17,14 +17,14 @@ Registered object must return instance of :class:`Processing`.
 
 
 def build_processing_class(cfg, training=False):
-  """
+    """
     Build a backbone from `cfg.MODEL.BACKBONE.NAME`.
 
     Returns:
         an instance of :class:`Backbone`
     """
-  # if input_shape is None:
-  #     input_shape = ShapeSpec(channels=len(cfg.MODEL.PIXEL_MEAN))
+    # if input_shape is None:
+    #     input_shape = ShapeSpec(channels=len(cfg.MODEL.PIXEL_MEAN))
 
-  process_class_name = cfg.PROCESSING_NAME
-  return DATA_PROCESSING_REGISTRY.get(process_class_name)(cfg, training)
+    process_class_name = cfg.PROCESSING_NAME
+    return DATA_PROCESSING_REGISTRY.get(process_class_name)(cfg, training)

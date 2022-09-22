@@ -73,6 +73,7 @@ class SequenceDataset(torch.utils.data.Dataset):
             datasets = get_trainsets(cfg.VAL.DATASET_NAMES, cfg.ROOT)
             p_datasets = cfg.VAL.DATASETS_RATIO
             frames = cfg.VAL.FRAMES
+        # TRACED: 数据处理的方式！
         processing_class = build_processing_class(cfg, training)
         return {
             "datasets": datasets,
@@ -176,6 +177,7 @@ class SequenceDataset(torch.utils.data.Dataset):
             search_frames, search_anno, meta_obj_search = dataset.get_frames(
                 seq_id, search_frame_ids, seq_info_dict)
 
+            # TRACED: coco 数据集格式 480*640
             H, W, _ = search_frames[0].shape
             search_masks = search_anno['mask'] if 'mask' in search_anno else [
                 torch.zeros((H, W))
@@ -194,6 +196,8 @@ class SequenceDataset(torch.utils.data.Dataset):
                 meta_obj_search.get('object_class_name')
             })
             try:
+                # BUG: 无法成功加载数据！原因：将图像 crop 操作去掉！即 utt.yaml 中 DATASET.SEARCH.SIZE=None 默认就不进行裁剪，只进行 padding 操作
+                # data['template_images'] 去了哪里？如果只有 search_images 如何进行训练？
                 return self.processing(data)
             except Exception as e:
                 retry_count += 1

@@ -74,10 +74,11 @@ class SequenceProcessing(SiameseBaseProcessing):
         jittered_boxes = [
             self._get_jittered_box(a) for a in data['search_boxes']
         ]
+        # TRACED: 对 SEARCH IMAGE 进行处理！
         crops, boxes, att_mask, mask_crops = prutils.jittered_center_crop(
-            data['search_images'],
-            jittered_boxes,
-            data['search_boxes'],
+            data['search_images'],  # frames
+            jittered_boxes,  # box_extract
+            data['search_boxes'],  # box_gt
             self.search_area_factor,
             self.output_sz,
             masks=data['search_masks'])

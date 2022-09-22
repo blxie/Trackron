@@ -10,10 +10,15 @@ def numpy_to_torch(a: np.ndarray):
 
 
 def torch_to_numpy(a: torch.Tensor):
-    return a.squeeze(0).permute(1,2,0).cpu().numpy()
+    return a.squeeze(0).permute(1, 2, 0).cpu().numpy()
 
 
-def sample_patch_transformed(im, pos, scale, image_sz, transforms, is_mask=False):
+def sample_patch_transformed(im,
+                             pos,
+                             scale,
+                             image_sz,
+                             transforms,
+                             is_mask=False):
     """Extract transformed image samples.
     args:
         im: Image.
@@ -24,7 +29,11 @@ def sample_patch_transformed(im, pos, scale, image_sz, transforms, is_mask=False
     """
 
     # Get image patche
-    im_patch, _ = sample_patch(im, pos, scale*image_sz, image_sz, is_mask=is_mask)
+    im_patch, _ = sample_patch(im,
+                               pos,
+                               scale * image_sz,
+                               image_sz,
+                               is_mask=is_mask)
 
     # Apply transforms
     im_patches = torch.cat([T(im_patch, is_mask=is_mask) for T in transforms])
@@ -32,7 +41,12 @@ def sample_patch_transformed(im, pos, scale, image_sz, transforms, is_mask=False
     return im_patches
 
 
-def sample_patch_multiscale(im, pos, scales, image_sz, mode: str='replicate', max_scale_change=None):
+def sample_patch_multiscale(im,
+                            pos,
+                            scales,
+                            image_sz,
+                            mode: str = 'replicate',
+                            max_scale_change=None):
     """Extract image patches at multiple scales.
     args:
         im: Image.
@@ -46,16 +60,26 @@ def sample_patch_multiscale(im, pos, scales, image_sz, mode: str='replicate', ma
         scales = [scales]
 
     # Get image patches
-    patch_iter, coord_iter = zip(*(sample_patch(im, pos, s*image_sz, image_sz, mode=mode,
-                                                max_scale_change=max_scale_change) for s in scales))
+    patch_iter, coord_iter = zip(
+        *(sample_patch(im,
+                       pos,
+                       s * image_sz,
+                       image_sz,
+                       mode=mode,
+                       max_scale_change=max_scale_change) for s in scales))
     im_patches = torch.cat(list(patch_iter))
     patch_coords = torch.cat(list(coord_iter))
 
-    return  im_patches, patch_coords
+    return im_patches, patch_coords
 
 
-def sample_patch(im: torch.Tensor, pos: torch.Tensor, sample_sz: torch.Tensor, output_sz: torch.Tensor = None,
-                 mode: str = 'replicate', max_scale_change=None, is_mask=False):
+def sample_patch(im: torch.Tensor,
+                 pos: torch.Tensor,
+                 sample_sz: torch.Tensor,
+                 output_sz: torch.Tensor = None,
+                 mode: str = 'replicate',
+                 max_scale_change=None,
+                 is_mask=False):
     """Sample an image patch.
 
     args:
@@ -94,13 +118,13 @@ def sample_patch(im: torch.Tensor, pos: torch.Tensor, sample_sz: torch.Tensor, o
     else:
         df = int(1)
 
-    sz = sample_sz.float() / df     # new size
+    sz = sample_sz.float() / df  # new size
 
     # Do downsampling
     if df > 1:
-        os = posl % df              # offset
-        posl = (posl - os) // df     # new position
-        im2 = im[..., os[0].item()::df, os[1].item()::df]   # downsample
+        os = posl % df  # offset
+        posl = (posl - os) // df  # new position
+        im2 = im[..., os[0].item()::df, os[1].item()::df]  # downsample
     else:
         im2 = im
 
@@ -109,7 +133,7 @@ def sample_patch(im: torch.Tensor, pos: torch.Tensor, sample_sz: torch.Tensor, o
 
     # Extract top and bottom coordinates
     tl = posl - (szl - 1) // 2
-    br = posl + szl//2 + 1
+    br = posl + szl // 2 + 1
 
     # Shift the crop to inside
     if mode == 'inside' or mode == 'inside_major':
@@ -125,36 +149,48 @@ def sample_patch(im: torch.Tensor, pos: torch.Tensor, sample_sz: torch.Tensor, o
 
         # Get image patch
         # im_patch = im2[...,tl[0].item():br[0].item(),tl[1].item():br[1].item()]
-    
+
     # Get image patch
     if not is_mask:
-        im_patch = F.pad(im2, (-tl[1].item(), br[1].item() - im2.shape[3], -tl[0].item(), br[0].item() - im2.shape[2]), pad_mode)
+        im_patch = F.pad(im2, (-tl[1].item(), br[1].item() - im2.shape[3],
+                               -tl[0].item(), br[0].item() - im2.shape[2]),
+                         pad_mode)
     else:
-        im_patch = F.pad(im2, (-tl[1].item(), br[1].item() - im2.shape[3], -tl[0].item(), br[0].item() - im2.shape[2]))
+        im_patch = F.pad(im2, (-tl[1].item(), br[1].item() - im2.shape[3],
+                               -tl[0].item(), br[0].item() - im2.shape[2]))
 
     # Get image coordinates
-    patch_coord = df * torch.cat((tl, br)).view(1,4)
+    patch_coord = df * torch.cat((tl, br)).view(1, 4)
 
-    if output_sz is None or (im_patch.shape[-2] == output_sz[0] and im_patch.shape[-1] == output_sz[1]):
+    if output_sz is None or (im_patch.shape[-2] == output_sz[0]
+                             and im_patch.shape[-1] == output_sz[1]):
         return im_patch.clone(), patch_coord
 
     # Resample
     if not is_mask:
-        im_patch = F.interpolate(
-            im_patch, output_sz.long().tolist(), mode='bilinear')
+        im_patch = F.interpolate(im_patch,
+                                 output_sz.long().tolist(),
+                                 mode='bilinear')
     else:
-        im_patch = F.interpolate(im_patch, output_sz.long().tolist(), mode='nearest')
+        im_patch = F.interpolate(im_patch,
+                                 output_sz.long().tolist(),
+                                 mode='nearest')
 
     return im_patch, patch_coord
 
 
-def sample_target(im, target_bb, search_area_factor, output_sz=None, mask=None):
+def sample_target(im,
+                  target_bb,
+                  search_area_factor,
+                  output_sz=None,
+                  mask=None):
     """ Extracts a square crop centered at target_bb box, of area search_area_factor^2 times target_bb area
 
     args:
         im - cv image
         target_bb - target box [x, y, w, h]
         search_area_factor - Ratio of crop size to target size
+        # TRACED: 是否对原图进行裁剪操作
         output_sz - (float) Size to which the extracted crop is resized (always square). If None, no resizing is done.
 
     returns:
@@ -189,10 +225,11 @@ def sample_target(im, target_bb, search_area_factor, output_sz=None, mask=None):
         mask_crop = mask[y1 + y1_pad:y2 - y2_pad, x1 + x1_pad:x2 - x2_pad]
 
     # Pad
-    im_crop_padded = cv.copyMakeBorder(im_crop, y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_CONSTANT)
+    im_crop_padded = cv.copyMakeBorder(im_crop, y1_pad, y2_pad, x1_pad, x2_pad,
+                                       cv.BORDER_CONSTANT)
     # deal with attention mask
     H, W, _ = im_crop_padded.shape
-    att_mask = np.ones((H,W))
+    att_mask = np.ones((H, W))
     end_x, end_y = -x2_pad, -y2_pad
     if y2_pad == 0:
         end_y = None
@@ -200,19 +237,28 @@ def sample_target(im, target_bb, search_area_factor, output_sz=None, mask=None):
         end_x = None
     att_mask[y1_pad:end_y, x1_pad:end_x] = 0
     if mask is not None:
-        mask_crop_padded = F.pad(mask_crop, pad=(x1_pad, x2_pad, y1_pad, y2_pad), mode='constant', value=0)
+        mask_crop_padded = F.pad(mask_crop,
+                                 pad=(x1_pad, x2_pad, y1_pad, y2_pad),
+                                 mode='constant',
+                                 value=0)
 
     if output_sz is not None:
         resize_factor = output_sz / crop_sz
         im_crop_padded = cv.resize(im_crop_padded, (output_sz, output_sz))
         att_mask = cv.resize(att_mask, (output_sz, output_sz)).astype(np.bool_)
+
         if mask is None:
             return im_crop_padded, resize_factor, att_mask
-        mask_crop_padded = \
-        F.interpolate(mask_crop_padded[None, None], (output_sz, output_sz), mode='bilinear', align_corners=False)[0, 0]
+
+        mask_crop_padded = F.interpolate(mask_crop_padded[None, None],
+                                         (output_sz, output_sz),
+                                         mode='bilinear',
+                                         align_corners=False)[0, 0]
+
         return im_crop_padded, resize_factor, att_mask, mask_crop_padded
 
     else:
         if mask is None:
             return im_crop_padded, att_mask.astype(np.bool_), 1.0
+
         return im_crop_padded, 1.0, att_mask.astype(np.bool_), mask_crop_padded

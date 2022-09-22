@@ -4,6 +4,8 @@ from .swin_transformer import swin_trans_b, swin_trans_s, swin_trans_t
 from .resnet_detr import resnet50_detr
 from .dla import dla34
 from .yolox import yolox
+# XBL add;
+from .convnext import convnext_tiny, convnext_base, convnext_large
 from .build import build_backbone, BACKBONE_REGISTRY  # noqa F401 isort:skip
 
 # from .backbone import Backbone

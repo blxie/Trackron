@@ -1,10 +1,15 @@
 MODEL:
     META_ARCHITECTURE: "UnifiedTransformerTracker2"
-    # WEIGHTS: "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+    # XBL comment; 从头开始训练的时候用到，和下面的 backbone 搭配使用，同时进行修改
+    # WEIGHTS: "checkpoints/backbone/resnet50-19c8e357.pth"
+    WEIGHTS: "checkpoints/backbone/convnext_tiny_1k_224_ema.pth"
+    # XBL comment; 测试的时候才需要修改，--resume 的时候不需要修改
     # WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/best.pth"
-    WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
+    # WEIGHTS: "/home/guest/XieBailian/proj/Trackron/outputs/last_checkpoint"
     BACKBONE:
-        NAME: "resnet50"
+        # XBL comment; 修改 backbone 为 convnext_tiny
+        # NAME: "resnet50"
+        NAME: "convnext_tiny"
         OUTPUT_LAYERS: ["layer2", "layer3", "layer4"]
         FROZEN_STAGES: -1
         NORM: SyncBN
@@ -49,6 +54,7 @@ SOT:
         NAME: "SequenceSOTObjective"
     DATASET:
         ROOT: "/data"
+        # TRACED: 数据处理方式
         CLASS_NAME: "SequenceDataset"
         PROCESSING_NAME: "SequenceProcessing"
         BOX_MODE: "xyxy"
@@ -58,7 +64,9 @@ SOT:
             DATASET_NAMES: ["COCO17", "lasot", "trackingnet", "got10k_train"]
             DATASETS_RATIO: [1, 1, 1, 1]
         SEARCH:
+            # XBL changed;
             SIZE: 352
+            # SIZE: 384  # template 的大小！
             FACTOR: 6.0
             CENTER_JITTER: 5.5
             SCALE_JITTER: 0.5
@@ -71,6 +79,7 @@ SOT:
             VERSIONS: [""]
 
     DATALOADER:
+        # XBL comment;
         NUM_WORKERS: 0
         STACK_DIM: 0
         COLLATE_FN: "trival"
@@ -115,12 +124,11 @@ SOLVER:
     OPTIMIZER_NAME: "adamw"
     LR_SCHEDULER:
         NAME: "cosine"
-        # XBL comment; lr >= 1e-6 custom in DL!
         WARMUP_ITERS: 2000
         WARMUP_LR: 1e-6
         LR_MIN: 1e-6
     # XBL comment; debug/run
-    CHECKPOINT_PERIOD: 500
+    CHECKPOINT_PERIOD: 1000
     CLIP_GRADIENTS:
         ENABLED: False
         CLIP_TYPE: "norm"
@@ -134,8 +142,8 @@ SEED: 0
 
 TEST:
     EVAL_PERIOD: 0
-    # XBL changed; 8 --> 10
-    ETEST_PERIOD: 100000
+    # XBL changed; 8 --> -1 训练的时候不进行测试，要测试就单独进行！
+    ETEST_PERIOD: -1
 
 TRACKER:
     NAME: "SiameseTracker"

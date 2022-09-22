@@ -39,8 +39,8 @@ def sot_dimp_objective():
     cfg = sot_default_objective()
     cfg.NAME = 'DiMPObjective'
     # XBL changed;
-    # cfg.LOSS_CLS = 'FocalLoss'
     cfg.LOSS_CLS = 'LBHinge'
+    # cfg.LOSS_CLS = 'FocalLoss'
     cfg.LOSS_CLS_THRESHOLD = 0.05
     cfg.LOSS_BBOX = 'IoUScore'
     cfg.WEIGHT.LOSS_CLS = 100.0

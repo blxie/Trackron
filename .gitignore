@@ -15,7 +15,7 @@ __pycache__
 *.so
 build
 *egg*
-outputs
+output*
 checkpoints
 .git
 nohup.out

@@ -43,6 +43,7 @@ class SiameseBaseProcessing:
             transform if template_transform is None else template_transform,
             'search':
             transform if search_transform is None else search_transform,
+            # TRACED: 同时对 template 和 search 进行操作！
             'joint': joint_transform
         }
 
@@ -106,6 +107,7 @@ class SiamProcessing(SiameseBaseProcessing):
     @classmethod
     def from_config(cls, cfg, training=False):
         search_area_factor = cfg.SEARCH.FACTOR
+        # TRACED: SEARCH.SIZE 配置，设置 search image 的大小！
         output_sz = cfg.SEARCH.SIZE
         center_jitter_factor = {
             'template': cfg.TEMPLATE.CENTER_JITTER,
@@ -220,6 +222,7 @@ class SiamProcessing(SiameseBaseProcessing):
             data['template_boxes'] = box_convert(data['template_boxes'],
                                                  'xywh', 'xyxy')
 
+        print(f"search image shape: {data['search_boxes'].shape}")
         return data
 
 

@@ -44,10 +44,11 @@ def default_argument_parser(epilog=None):
                         default="configs/utt/utt.yaml",
                         metavar="FILE",
                         help="path to config file")
-    parser.add_argument("--config-func",
-                        # default="s3t",  # error
-                        default="utt",
-                        help="function for setting configs")
+    parser.add_argument(
+        "--config-func",
+        # default="s3t",  # error
+        default="utt",
+        help="function for setting configs")
 
     # TRACED: 从最后保存的模型开始继续训练
     parser.add_argument(
@@ -81,6 +82,16 @@ def default_argument_parser(epilog=None):
                         type=int,
                         default=0,
                         help="the rank of this machine (unique per machine)")
+
+    # XBL add;
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=24,
+                        help="total batch size of all gpus!")
+    parser.add_argument("--output_dir",
+                        type=str,
+                        default="./outputs",
+                        help="total batch size of all gpus!")
 
     # PyTorch still may leave orphan processes in multi-gpu training.
     # Therefore we use a deterministic way to obtain port,
@@ -148,18 +159,18 @@ def default_setup(cfg, args):
 
     logger.info("Rank of current process: {}. World size: {}".format(
         rank, comm.get_world_size()))
-    logger.info("Environment info:\n" + collect_env_info())
-
-    logger.info("Command line arguments: " + str(args))
-    if hasattr(args, "config_file") and args.config_file != "":
-        logger.info("Contents of args.config_file={}:\n{}".format(
-            args.config_file,
-            open(args.config_file, "r").read()))
+    # XBL comment;
+    # logger.info("Environment info:\n" + collect_env_info())
+    # logger.info("Command line arguments: " + str(args))
+    # if hasattr(args, "config_file") and args.config_file != "":
+    #     logger.info("Contents of args.config_file={}:\n{}".format(
+    #         args.config_file,
+    #         open(args.config_file, "r").read()))
 
     if comm.is_main_process() and output_dir:
-        # Note: some of our scripts may expect the existence of
-        # config.yaml in output directory
-        logger.info("Running with full config:\n{}".format(cfg))
+        # Note: some of our scripts may expect the existence of config.yaml in output directory
+        # XBL comment;
+        # logger.info("Running with full config:\n{}".format(cfg))
         path = output_dir / "config.yaml"
         if not args.eval_only:
             with open(path, "w") as f:

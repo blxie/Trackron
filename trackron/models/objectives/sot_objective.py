@@ -16,6 +16,7 @@ from trackron.data.mask_ops import crop_and_resize
 
 from .build import OBJECTIVE_REGISTRY
 from .losses import BOX_LOSS_REGISTRY, CLS_LOSS_REGISTRY, centerness_loss
+from trackron.models.objectives import losses
 
 
 @OBJECTIVE_REGISTRY.register()
@@ -163,9 +164,11 @@ class SOTObjectiveMultiQuery(SOTObjective):
         return losses, weighted_losses, metrics
 
 
+# TRACED: 训练日志中打印的使用的损失函数
 @OBJECTIVE_REGISTRY.register()
 class SequenceSOTObjective(SOTObjective):
     """Objective for training the Squence predict boxes"""
+    import fvcore.nn.focal_loss
 
     def forward(self, results, data, normalize_box=True):
         pred_boxes = results['pred_boxes']

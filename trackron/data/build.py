@@ -137,6 +137,7 @@ def build_tracking_loader(cfg, *, sampler=None, training=False):
 
     # sampler = TrainingSampler(dataset)
     world_size = get_world_size()
+    # TRACED: batchsize 指定！
     total_batch_size = cfg.DATALOADER.BATCH_SIZE
     assert (
         total_batch_size > 0 and total_batch_size % world_size == 0

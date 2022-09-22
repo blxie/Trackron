@@ -45,8 +45,12 @@ def proj_layer(in_channels,
                   kernel_size=kernel_sz,
                   padding=padding,
                   stride=stride), norm_layer)
-    # return nn.Sequential(nn.Conv2d(in_channels, hidden_dim, kernel_size=kernel_sz, padding=padding, stride=stride),
-    #                      nn.GroupNorm(hidden_dim // 8, hidden_dim))
+    # return nn.Sequential(
+    #     nn.Conv2d(in_channels,
+    #               hidden_dim,
+    #               kernel_size=kernel_sz,
+    #               padding=padding,
+    #               stride=stride), nn.GroupNorm(hidden_dim // 8, hidden_dim))
 
 
 @META_ARCH_REGISTRY.register()
@@ -781,7 +785,7 @@ class UnifiedTransformerTracker(nn.Module):
                                                               torch.Tensor]]):
         """
         Normalize, pad and batch the input images.
-    """
+        """
         images = torch.stack([
             (x["search_images"].to(self.device) - self.pixel_mean[None]) /
             self.pixel_std[None] for x in batched_inputs
@@ -820,7 +824,7 @@ class UnifiedTransformerTracker(nn.Module):
                                                               torch.Tensor]]):
         """
         Normalize, pad and batch the input images.
-    """
+        """
         samples = {}
         for s in ['template', 'search']:
             images = [(x[f"{s}_images"].to(self.device) - self.pixel_mean) /
@@ -952,38 +956,47 @@ class UnifiedTransformerTracker(nn.Module):
 
 @META_ARCH_REGISTRY.register()
 class UnifiedTransformerTracker2(UnifiedTransformerTracker):
-    ''''
-  for MOT:
-  reference detection are frozen for lower memory cost
-  for sot:
-  reference are random sampled
-  '''
+    '''
+    for MOT:
+        reference detection are frozen for lower memory cost
+    for sot:
+        reference are random sampled
+    '''
 
     def forward_sot(self, data: List[Dict[str, torch.Tensor]]):
         """for sot training
-    Args:
-        data (List[Dict[str, torch.Tensor]]): [description]
-
-    """
+        Args:
+            data (List[Dict[str, torch.Tensor]]): [description]
+        """
         samples = self.preprocess_sot_inputs(data)
+
         batch, time = samples['search_images'].shape[:2]  ### B T C H W
+
+        # XBL comment; forward backbone 经过 backbone 之后的数据格式？
         features = self.backbone(samples['search_images'].flatten(0, 1))
+
         feature_layer = self.sot_feature_layer
+
         srcs, masks, posembs = self.get_proj_features(
             features, samples['search_masks'].flatten(0, 1),
             self.tracking_proj)
+
         frame_feature = srcs[feature_layer]
+
         mask, posemb = masks[feature_layer], posembs[feature_layer]
-        ### prepare tracking targets and proposals
-        temp_indices = torch.randint(0, time, (batch, )) + torch.arange(
-            batch) * time  ### random reference frame for each video
+
+        ## prepare tracking targets and proposals
+        ### random reference frame for each video
+        temp_indices = torch.randint(0, time,
+                                     (batch, )) + torch.arange(batch) * time
         temp_frame_feature = frame_feature[temp_indices]
         temp_boxes = samples['search_boxes'].view(-1, 4)[temp_indices]
         init_target_feat = self.get_target_roi_feat([temp_frame_feature],
                                                     temp_boxes, self.sot_roi)
+
+        ## reference feature for all frames
         init_target_feat = repeat(init_target_feat, 'b c -> (b t) c',
-                                  t=time).unsqueeze(
-                                      1)  ## reference feature for all frames
+                                  t=time).unsqueeze(1)
         target_feat, proposals = self.prepare_sot_target_feature_proposal(
             init_target_feat, frame_feature, mask, posemb)
 
@@ -998,14 +1011,16 @@ class UnifiedTransformerTracker2(UnifiedTransformerTracker):
             "pred_scores": track_results.get("scores", None),
             "pred_masks": track_results.get("masks", None)
         }
+
+        # TRACED: 计算损失
         return self.sot_objective(out, samples)
 
     def forward_mot(self, data: List[Dict[str, torch.Tensor]]):
         """[summary]
-    Args:
-        data (List[Dict[str, torch.Tensor]]): [description]
 
-    """
+        Args:
+            data (List[Dict[str, torch.Tensor]]): [description]
+        """
 
         samples = self.preprocess_mot_inputs(data)
         targets = self.prepare_mot_targets(data)

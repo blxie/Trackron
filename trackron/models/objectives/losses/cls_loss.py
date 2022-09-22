@@ -7,6 +7,8 @@ from trackron.config import configurable
 from .build import CLS_LOSS_REGISTRY
 
 
+# XBL copied from OSTrack
+# changed as following loss register
 @CLS_LOSS_REGISTRY.register()
 class FocalLoss(nn.Module, ABC):
 
@@ -15,6 +17,10 @@ class FocalLoss(nn.Module, ABC):
         super(FocalLoss, self).__init__()
         self.alpha = alpha
         self.beta = beta
+
+    @classmethod
+    def from_config(cls, cfg):
+        return {"threshold": cfg.LOSS_CLS_THRESHOLD}
 
     def forward(self, prediction, target):
         positive_index = target.eq(1).float()

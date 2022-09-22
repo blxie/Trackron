@@ -38,7 +38,7 @@ python setup.py develop
 
 > `git clone 128 error`
 
-- 直接将原仓库下载下来，然后使用 `python setup.py develop/install` 安装；
+-   直接将原仓库下载下来，然后使用 `python setup.py develop/install` 安装；
 
 更改下载源，在 `setup.py` 同级目录下创建 `setup.cfg`,
 
@@ -49,8 +49,8 @@ index_url = https://pypi.tuna.tsinghua.edu.cn/simple
 
 记得删除 `.git` 文件夹！
 
-- 创建一个新的文件夹，然后运行 `git clone git+https://...` 即可，具体是什么原因导致的，不清楚！！！个人猜想还是和 `git` 有关；
-- 重启网络；
+-   创建一个新的文件夹，然后运行 `git clone git+https://...` 即可，具体是什么原因导致的，不清楚！！！个人猜想还是和 `git` 有关；
+-   重启网络；
 
 ## 重点
 
@@ -96,11 +96,11 @@ lr_scheduler = CosineLRScheduler(
         )
 ```
 
-- `coco` 数据集路径：`self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))`, 去掉 `images`
+-   `coco` 数据集路径：`self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))`, 去掉 `images`
 
 在 `Trackron/trackron/data/datasets/trainsets/coco_seq.py` 中。
 
-- 修改 `read_csv` 的方法，解决输出的警告！
+-   修改 `read_csv` 的方法，解决输出的警告！
 
 `Ctrl + Shift + F` : `squeeze=True`
 
@@ -123,7 +123,7 @@ dim_t = self.temperature**(
             self.num_pos_feats)
 ```
 
-- 相应参数的修改，这里有一个疑问是默认的参数都存放在 `config.py` 中的，为什么没有成功读取出来呢？
+-   相应参数的修改，这里有一个疑问是默认的参数都存放在 `config.py` 中的，为什么没有成功读取出来呢？
 
 > `Trackron/trackron/solvers/build.py`
 
@@ -132,7 +132,7 @@ dim_t = self.temperature**(
 decay_rate=0.1,
 ```
 
-- 修改 `DDP` 运行脚本
+-   修改 `DDP` 运行脚本
 
 ```shell
 # config_file=$1
@@ -162,6 +162,10 @@ tensorboard --logdir=outputs  # 注意这里 outputs 里面必须包含 log.txt�
 TRACKER.VISUALIZATION
 ```
 
+## 修改为自己的模型
+
+### 目前思路：将 SEARCH.SIZE 更改为全图大小
+
 > 2.修改 `SOT` 图片大小，默认设置在配置文件中 `352`
 
 `trackron/config/data_configs.py`, 320
@@ -170,7 +174,11 @@ TRACKER.VISUALIZATION
 
 直接搜索 `SEARCH.SIZE`，然后对 `SOT` 的搜索区域大小进行修改，初步考虑将 `SEARCH.SIZE` 替换为 `img_info` 中的 `w, h`。
 
-最终修改的地方：`trackron/data/processing/base.py`，将图片裁剪部分操作去除即可；默认的训练方式是 `SOT`。
+~~ 最终修改的地方：`trackron/data/processing/base.py`，将图片裁剪部分操作去除即可；默认的训练方式是 `SOT`。 ~~
+
+**以上这里有问题！！！**
+
+并不能简单通过注释就修改图片的大小！图片大小的确定在 `SOT.DATASET.SEARCH.SIZE` 里面进行指定，通过搜索该关键字来确定哪里对图片进行了裁剪操作！
 
 ## Q & A
 
@@ -186,6 +194,8 @@ A: 可以。具体实现是设置经过 30 个间隔，在两种模式之间进�
 
 ```bash
 python tools/train_net.py --config-file "configs/utt/utt.yaml" --config-func utt
+
+CUDA_VISIBLE_DEVICES=1,2 nohup python tools/train_net.py --resume --num-gpus 2 --batch_size 16 --output_dir ./outputs_gpu2_352 &
 ```
 
 ## RESUME
@@ -207,13 +217,14 @@ A: 是作者重新写了一个类继承了 `fvcore` 中的 `Checkpointer` 类，
 
 解决方法很简单：要么就对继承的类的函数进行重命名，要么就把其中覆写的部分删除！
 
-- `trackron/checkpoint/tracking_checkpoint.py`: `func save()`
-- `/home/guest/anaconda3/envs/trackron/lib/python3.8/site-packages/fvcore/common/checkpoint.py`: `meta` 官方的 `fvcore`
+-   `trackron/checkpoint/tracking_checkpoint.py`: `func save()`
+-   `/home/guest/anaconda3/envs/trackron/lib/python3.8/site-packages/fvcore/common/checkpoint.py`: `meta` 官方的 `fvcore`
 
 > 参考链接 1：[Py 之 fvcore：fvcore 库的简介、安装、使用方法之详细攻略\_一个处女座的程序猿的博客-CSDN 博客\_fvcore 安装](https://blog.csdn.net/qq_41185868/article/details/103881195)
 > 参考链接 2：[How to resume training from last checkpoint? · Issue #148 · facebookresearch/detectron2](https://github.com/facebookresearch/detectron2/issues/148)
 
 ---
+
 > Q: 有关 `cosine` 学习率不变的问题
 
 调试：`trackron/trainers/ltr_trainer.py _stats_new_epoch()` 记录了学习率的变化！从这里入手；
@@ -226,4 +237,4 @@ A: 是作者重新写了一个类继承了 `fvcore` 中的 `Checkpointer` 类，
 
 > Q: lr >= 0.6 否则再怎么缩小也只会使得训练越来越差！
 
-实验中将 lr 每 500iter 减小 1e-4 * 0.05，然而实际效果并不好，训练到 560000 左右后，模型的准确率大约低了 1 个百分点！
+实验中将 lr 每 500iter 减小 1e-4 \* 0.05，然而实际效果并不好，训练到 560000 左右后，模型的准确率大约低了 1 个百分点！

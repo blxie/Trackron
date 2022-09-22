@@ -123,6 +123,7 @@ def forward_step(data_iters, model, max_fail=10, mode='sot'):
     fail_time = 0
     while fail_time < max_fail:
         try:
+            # TRACED: 加载训练数据！
             data = next(data_iters)
             # BUG RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
             # 原因：数据未被正确加载
@@ -132,7 +133,6 @@ def forward_step(data_iters, model, max_fail=10, mode='sot'):
             traceback.print_exc()
             logger.warning('retry %d th time' % fail_time)
     traceback.print_exc()
-    # TRACED
     raise ValueError('Cannot get data')
 
 
@@ -159,7 +159,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
     periodic_checkpointer = PeriodicCheckpointer(checkpointer,
                                                  cfg.SOLVER.CHECKPOINT_PERIOD,
                                                  max_iter=max_iter,
-                                                 max_to_keep=3)
+                                                 max_to_keep=1)
 
     writers = default_writers(cfg.OUTPUT_DIR,
                               max_iter) if comm.is_main_process() else []
@@ -260,7 +260,7 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
 
             # XBL add; save best.pth
             # 思路：每个模型都保存截至当前最小的损失值，如果当前损失值更小，就对best.pth进行更新
-            if losses < best_loss:  # 如果当前损失值更小，就进行更新保存
+            if losses < best_loss and losses < 0.3:  # 如果当前损失值更小，就进行更新保存
                 logger.info(
                     f"Saving best checkpoint! current loss is {losses} < {best_loss}!"
                 )
@@ -273,12 +273,17 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
 
 
 def main(args):
-    # cfg = setup(args)
     cfg = setup_cfg(args)
+    # XBL add;
+    cfg.defrost()  # 解冻，使得数据可以被修改
+    cfg.OUTPUT_DIR = args.output_dir
+    cfg.SOT.DATALOADER.BATCH_SIZE = args.batch_size
+    cfg.freeze()  # 重新将其锁住，禁止修改！
+    logger.info(f"total batch size is {cfg.SOT.DATALOADER.BATCH_SIZE}!")
     default_setup(cfg, args)
 
     model = build_model(cfg)
-    logger.info("Model:\n{}".format(model))
+    # logger.info("Model:\n{}".format(model))
     distributed = comm.get_world_size() > 1
     if distributed:
         model = DDP(model,
@@ -300,7 +305,7 @@ def main(args):
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
-    print("Command Line Args:", args)
+    # print("Command Line Args:", args)
     launch(
         main,
         args.num_gpus,
