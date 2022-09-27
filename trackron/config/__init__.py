@@ -21,12 +21,15 @@ def setup_cfg(args):
 	Create configs and perform basic setups.
 	"""
 	cfg = get_cfg()
+	
 	config_func = getattr(mc, "add_{}_config".format(args.config_func), None)
 	if config_func is None:
 		raise NotImplemented('{} is not supported'.format(args.config_func))
+
 	# utt(cfg)
 	cfg = config_func(cfg)
 	cfg.merge_from_file(args.config_file)
 	cfg.merge_from_list(args.opts)
 	cfg.freeze()
+
 	return cfg

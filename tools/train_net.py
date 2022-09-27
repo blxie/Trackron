@@ -140,8 +140,8 @@ def do_train(cfg, model, resume=False, tracking_mode='sot'):
     model.train()
     # TRACED: 有关学习率的设置
     optimizer, scheduler = build_optimizer_scheduler(cfg, model)
-    # XBL add; 修改 已经保存的模型中的相关参数，使得最新配置生效
 
+    # XBL add; 修改 已经保存的模型中的相关参数，使得最新配置生效
     checkpointer = TrackingCheckpointer(model,
                                         cfg.OUTPUT_DIR,
                                         optimizer=optimizer,
@@ -277,7 +277,9 @@ def main(args):
     # XBL add;
     cfg.defrost()  # 解冻，使得数据可以被修改
     cfg.OUTPUT_DIR = args.output_dir
-    cfg.SOT.DATALOADER.BATCH_SIZE = args.batch_size
+    cfg.SOT.DATALOADER.BATCH_SIZE = args.num_gpu * 8
+    cfg.MODEL.BACKBONE.NAME = args.backbone
+    cfg.MODEL.WEIGHTS = args.weights
     cfg.freeze()  # 重新将其锁住，禁止修改！
     logger.info(f"total batch size is {cfg.SOT.DATALOADER.BATCH_SIZE}!")
     default_setup(cfg, args)
@@ -308,7 +310,7 @@ if __name__ == "__main__":
     # print("Command Line Args:", args)
     launch(
         main,
-        args.num_gpus,
+        args.num_gpu,
         num_machines=args.num_machines,
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,

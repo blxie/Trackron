@@ -5,103 +5,84 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "TRAIN-SOT-GPU3",
+            "name": "TRAIN-SOT-GPU3-Resnet",
             "type": "python",
             "request": "launch",
             "program": "tools/train_net.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--config-file",
+                "--config_file",
                 "configs/utt/utt.yaml",
-                "--config-func",
-                "utt",
-                "--resume", // ！！！从中断的地方开始继续训练，如果重新开始训练注释掉！
-                "--num-gpus",
-                "3",
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}",
-                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
-                "CUDA_VISIBLE_DEVICES": "0,1,2"
-            }
-        },
-        {
-            "name": "TRAIN-SOT-GPU2-352",
-            "type": "python",
-            "request": "launch",
-            "program": "tools/train_net.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": [
-                "--config-file",
-                "configs/utt/utt.yaml",
-                "--config-func",
+                "--config_func",
                 "utt",
                 "--resume",
-                "--num-gpus",
-                "2",
-                "--batch_size",
-                "16", // 2 张 GPU，2 * 8 = 16
+                "--num_gpu",
+                "3",
                 "--output_dir",
-                "./outputs_gpu2_352",
+                "./outputs_gpu3_resnet",
+                "--backbone",
+                "resnet50",
+                "--weights",
+                "checkpoints/backbone/resnet50-19c8e357.pth",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
-                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
-                "CUDA_VISIBLE_DEVICES": "1,2"
+                // "CUDA_VISIBLE_DEVICES": "1,2"
             }
         },
         {
-            "name": "TRAIN-SOT-GPU2-352-ConvNeXt",
+            "name": "TRAIN-SOT-GPU3-ConvNeXt-CIOU",
             "type": "python",
             "request": "launch",
             "program": "tools/train_net.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--config-file",
+                "--config_file",
                 "configs/utt/utt.yaml",
-                "--config-func",
+                "--config_func",
                 "utt",
                 "--resume",
-                "--num-gpus",
-                "2",
-                "--batch_size",
-                "16", // 2 张 GPU，2 * 8 = 16
+                "--num_gpu",
+                "3",
                 "--output_dir",
-                "./outputs_gpu2_352_convnext",
+                "./outputs_gpu3_convnextt_ciou",
+                "--backbone",
+                "convnext_tiny",
+                "--weights",
+                "checkpoints/backbone/convnext_tiny_1k_224_ema.pth",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
-                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
-                "CUDA_VISIBLE_DEVICES": "1,2"
+                // "CUDA_VISIBLE_DEVICES": "1,2"
             }
         },
         {
-            "name": "TRAIN-SOT-GPU3-352-ConvNeXt",
+            "name": "TRAIN-SOT-GPU3-ConvNeXt-DIOU",
             "type": "python",
             "request": "launch",
             "program": "tools/train_net.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--config-file",
+                "--config_file",
                 "configs/utt/utt.yaml",
-                "--config-func",
+                "--config_func",
                 "utt",
-                // "--resume",
-                "--num-gpus",
+                "--resume",
+                "--num_gpu",
                 "3",
-                "--batch_size",
-                "24", // 2 张 GPU，2 * 8 = 16
                 "--output_dir",
-                "./outputs_gpu3_352_convnext",
+                "./outputs_gpu3_convnextt_diou",
+                "--backbone",
+                "convnext_tiny",
+                "--weights",
+                "checkpoints/backbone/convnext_tiny_1k_224_ema.pth",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
-                // "CUDA_VISIBLE_DEVICES": "2"  // 调试的时候一定不要使用分布式（针对多个断点，一个断点没有限制）！！！一个 GPU 带不动
-                "CUDA_VISIBLE_DEVICES": "0,1,2"
+                // "CUDA_VISIBLE_DEVICES": "1,2"
             }
         },
         {
@@ -112,57 +93,48 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--config-file",
+                "--config_file",
                 "configs/utt/utt.yaml",
-                "--config-func",
+                "--config_func",
                 "utt",
                 "--eval-only",
-                "--num-gpus",
+                "--num_gpu",
                 "3", // 将 dataloader 均分到每个 GPU 上，打印的日志显示的数量是 /GPU 上的！
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
-                "CUDA_VISIBLE_DEVICES": "0,1,2"
             }
         },
-        // {
-        //     "name": "TEST-MOT",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "tools/train_net.py",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "args": [
-        //         "--config-file",
-        //         "configs/utt/utt.yaml",
-        //         "--config-func",
-        //         "utt",
-        //         "--mode",
-        //         "mot",
-        //         "--eval-only"
-        //     ],
-        //     "env": {
-        //         "PYTHONPATH": "${workspaceFolder}"
-        //     }
-        // },
-        // {
-        //     "name": "TRAIN-MOT",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "tools/train_net.py",
-        //     "console": "integratedTerminal",
-        //     "justMyCode": true,
-        //     "args": [
-        //         "--config-file",
-        //         "configs/utt/utt.yaml",
-        //         "--config-func",
-        //         "utt",
-        //         "--mode",
-        //         "mot",
-        //     ],
-        //     "env": {
-        //         "PYTHONPATH": "${workspaceFolder}"
-        //     }
-        // },
+        {
+            "name": "TEST-MOT",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--mode",
+                "mot",
+                "--eval-only"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "TRAIN-MOT",
+            "type": "python",
+            "request": "launch",
+            "program": "tools/train_net.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--mode",
+                "mot",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
     ]
 }

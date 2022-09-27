@@ -32,8 +32,7 @@ class BasicBlock(nn.Module):
         self.conv1 = conv3x3(inplanes, planes, stride, dilation=dilation)
         self.bn1 = get_norm(norm, planes)
 
-        # self.relu = nn.ReLU(inplace=True)
-        self.relu = nn.GELU()
+        self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes, dilation=dilation)
         self.bn2 = get_norm(norm, planes)
 
@@ -47,7 +46,7 @@ class BasicBlock(nn.Module):
         if self.bn1 is not None:
             out = self.bn1(out)
 
-        # out = self.relu(out)
+        out = self.relu(out)
 
         out = self.conv2(out)
         if self.bn2 is not None:
@@ -85,8 +84,7 @@ class Bottleneck(nn.Module):
         self.bn2 = get_norm(norm, planes)
         self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
         self.bn3 = get_norm(norm, planes * 4)
-        # self.relu = nn.ReLU(inplace=True)
-        self.relu = nn.GELU()
+        self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
 
@@ -137,8 +135,7 @@ class ResNet(Backbone):
                                padding=3,
                                bias=False)
         self.bn1 = get_norm(norm, inplanes)
-        # self.relu = nn.ReLU(inplace=True)
-        self.relu = nn.GELU()
+        self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         layer_strides = [1 + (dilation_factor < l) for l in (1, 2, 4, 8)]
         out_feature_strides = {'conv1': 4}
@@ -350,7 +347,7 @@ def resnet50(cfg):
             ]:
                 raise ValueError('Unknown layer: {}'.format(l))
 
-    model = ResNet(Bottleneck, [3, 3, 9, 3],
+    model = ResNet(Bottleneck, [3, 4, 6, 3],
                    output_layers,
                    frozen_stages=cfg.MODEL.BACKBONE.FROZEN_STAGES,
                    norm=cfg.MODEL.BACKBONE.NORM)

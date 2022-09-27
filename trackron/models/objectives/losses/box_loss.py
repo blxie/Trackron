@@ -4,102 +4,102 @@ import torch.nn as nn
 import torch.nn.functional as F
 from trackron.config import configurable
 from .build import BOX_LOSS_REGISTRY
-from torchvision.ops.boxes import box_area
+from torchvision import ops
 
 
 @BOX_LOSS_REGISTRY.register()
 class IoUScore(nn.MSELoss):
 
-  @configurable
-  def __init__(self):
-    """[summary]
+    @configurable
+    def __init__(self):
+        """[summary]
         """
-    super(IoUScore, self).__init__()
+        super(IoUScore, self).__init__()
 
-  @classmethod
-  def from_config(cls, cfg):
-    return {}
+    @classmethod
+    def from_config(cls, cfg):
+        return {}
 
-  def forward(self, iou_pred, data):
-    return super(IoUScore, self).forward(iou_pred, data['proposal_iou'])
+    def forward(self, iou_pred, data):
+        return super(IoUScore, self).forward(iou_pred, data['proposal_iou'])
 
 
 @BOX_LOSS_REGISTRY.register()
 class KLRegression(nn.Module):
-  """KL-divergence loss for probabilistic regression.
+    """KL-divergence loss for probabilistic regression.
     It is computed using Monte Carlo (MC) samples from an arbitrary distribution."""
 
-  @configurable
-  def __init__(self, eps=0.0):
-    """[summary]
+    @configurable
+    def __init__(self, eps=0.0):
+        """[summary]
     Args:
         eps (float, optional): [description]. Defaults to 0.0.
     """
-    super().__init__()
-    self.eps = eps
+        super().__init__()
+        self.eps = eps
 
-  @classmethod
-  def from_config(cls, cfg):
-    return {}
+    @classmethod
+    def from_config(cls, cfg):
+        return {}
 
-  def forward(self, scores, data):
-    """Args:
+    def forward(self, scores, data):
+        """Args:
             scores: predicted score values
             sample_density: probability density of the sample distribution
             gt_density: probability density of the ground truth distribution
             mc_dim: dimension of the MC samples"""
-    mc_dim = 1
-    is_valid = data['search_boxes'][:, :, 0] < 99999.0
-    scores = scores[is_valid, :]
-    sample_density = data['proposal_density'][is_valid, :]
-    gt_density = data['gt_density'][is_valid, :]
+        mc_dim = 1
+        is_valid = data['search_boxes'][:, :, 0] < 99999.0
+        scores = scores[is_valid, :]
+        sample_density = data['proposal_density'][is_valid, :]
+        gt_density = data['gt_density'][is_valid, :]
 
-    exp_val = scores - torch.log(sample_density + self.eps)
+        exp_val = scores - torch.log(sample_density + self.eps)
 
-    L = torch.logsumexp(exp_val, dim=mc_dim) - math.log(scores.shape[mc_dim]) - \
-        torch.mean(scores * (gt_density / (sample_density + self.eps)), dim=mc_dim)
+        L = torch.logsumexp(exp_val, dim=mc_dim) - math.log(scores.shape[mc_dim]) - \
+            torch.mean(scores * (gt_density / (sample_density + self.eps)), dim=mc_dim)
 
-    return L.mean()
+        return L.mean()
 
 
 class IoULoss(nn.Module):
 
-  def __init__(self):
-    super(IoULoss, self).__init__()
+    def __init__(self):
+        super(IoULoss, self).__init__()
 
-  def cal_iou_loss(self, pred, target, weight=None):
-    pred_left = pred[:, 0]
-    pred_top = pred[:, 1]
-    pred_right = pred[:, 2]
-    pred_bottom = pred[:, 3]
+    def cal_iou_loss(self, pred, target, weight=None):
+        pred_left = pred[:, 0]
+        pred_top = pred[:, 1]
+        pred_right = pred[:, 2]
+        pred_bottom = pred[:, 3]
 
-    target_left = target[:, 0]
-    target_top = target[:, 1]
-    target_right = target[:, 2]
-    target_bottom = target[:, 3]
+        target_left = target[:, 0]
+        target_top = target[:, 1]
+        target_right = target[:, 2]
+        target_bottom = target[:, 3]
 
-    target_area = (target_left + target_right) * \
-        (target_top + target_bottom)
-    pred_area = (pred_left + pred_right) * (pred_top + pred_bottom)
+        target_area = (target_left + target_right) * \
+            (target_top + target_bottom)
+        pred_area = (pred_left + pred_right) * (pred_top + pred_bottom)
 
-    w_intersect = torch.min(pred_left, target_left) + \
-        torch.min(pred_right, target_right)
-    h_intersect = torch.min(pred_bottom, target_bottom) + \
-        torch.min(pred_top, target_top)
+        w_intersect = torch.min(pred_left, target_left) + \
+            torch.min(pred_right, target_right)
+        h_intersect = torch.min(pred_bottom, target_bottom) + \
+            torch.min(pred_top, target_top)
 
-    area_intersect = w_intersect * h_intersect
-    area_union = target_area + pred_area - area_intersect
+        area_intersect = w_intersect * h_intersect
+        area_union = target_area + pred_area - area_intersect
 
-    losses = -torch.log((area_intersect + 1.0) / (area_union + 1.0))
+        losses = -torch.log((area_intersect + 1.0) / (area_union + 1.0))
 
-    if weight is not None and weight.sum() > 0:
-      return (losses * weight).sum() / weight.sum()
-    else:
-      assert losses.numel() != 0
-      return losses.mean()
+        if weight is not None and weight.sum() > 0:
+            return (losses * weight).sum() / weight.sum()
+        else:
+            assert losses.numel() != 0
+            return losses.mean()
 
-  def forward(self, bbox_pred, reg_target, reg_weight):
-    """
+    def forward(self, bbox_pred, reg_target, reg_weight):
+        """
             :param bbox_pred:
             :param reg_target:
             :param reg_weight:
@@ -108,43 +108,45 @@ class IoULoss(nn.Module):
             :return:
             """
 
-    bbox_pred_flatten = bbox_pred.permute(0, 2, 3, 1).contiguous().view(-1, 4)
-    reg_target_flatten = reg_target.view(-1, 4)
-    reg_weight_flatten = reg_weight.view(-1)
-    pos_inds = torch.nonzero(reg_weight_flatten > 0, as_tuple=False).squeeze(1)
+        bbox_pred_flatten = bbox_pred.permute(0, 2, 3,
+                                              1).contiguous().view(-1, 4)
+        reg_target_flatten = reg_target.view(-1, 4)
+        reg_weight_flatten = reg_weight.view(-1)
+        pos_inds = torch.nonzero(reg_weight_flatten > 0,
+                                 as_tuple=False).squeeze(1)
 
-    bbox_pred_flatten = bbox_pred_flatten[pos_inds]
-    reg_target_flatten = reg_target_flatten[pos_inds]
+        bbox_pred_flatten = bbox_pred_flatten[pos_inds]
+        reg_target_flatten = reg_target_flatten[pos_inds]
 
-    loss = self.cal_iou_loss(bbox_pred_flatten, reg_target_flatten)
+        loss = self.cal_iou_loss(bbox_pred_flatten, reg_target_flatten)
 
-    return loss
+        return loss
 
-  def pred_to_image(self, bbox_pred):
-    grid_to_search_x = self.grid_to_search_x.to(bbox_pred.device)
-    grid_to_search_y = self.grid_to_search_y.to(bbox_pred.device)
+    def pred_to_image(self, bbox_pred):
+        grid_to_search_x = self.grid_to_search_x.to(bbox_pred.device)
+        grid_to_search_y = self.grid_to_search_y.to(bbox_pred.device)
 
-    pred_x1 = grid_to_search_x - \
-        bbox_pred[:, 0, ...].unsqueeze(1)
-    pred_y1 = grid_to_search_y - \
-        bbox_pred[:, 1, ...].unsqueeze(1)
-    pred_x2 = grid_to_search_x + \
-        bbox_pred[:, 2, ...].unsqueeze(1)
-    pred_y2 = grid_to_search_y + \
-        bbox_pred[:, 3, ...].unsqueeze(1)
+        pred_x1 = grid_to_search_x - \
+            bbox_pred[:, 0, ...].unsqueeze(1)
+        pred_y1 = grid_to_search_y - \
+            bbox_pred[:, 1, ...].unsqueeze(1)
+        pred_x2 = grid_to_search_x + \
+            bbox_pred[:, 2, ...].unsqueeze(1)
+        pred_y2 = grid_to_search_y + \
+            bbox_pred[:, 3, ...].unsqueeze(1)
 
-    pred = [pred_x1, pred_y1, pred_x2, pred_y2]
+        pred = [pred_x1, pred_y1, pred_x2, pred_y2]
 
-    pred = torch.cat(pred, dim=1)
+        pred = torch.cat(pred, dim=1)
 
-    return pred
+        return pred
 
 
 def smooth_l1_loss(input: torch.Tensor,
                    target: torch.Tensor,
                    beta: float,
                    reduction: str = "none") -> torch.Tensor:
-  """
+    """
     Smooth L1 loss defined in the Fast R-CNN paper as:
 
                   | 0.5 * x ** 2 / beta   if abs(x) < beta
@@ -192,23 +194,23 @@ def smooth_l1_loss(input: torch.Tensor,
         the special case of both in which they are equal (beta=1).
         See: https://pytorch.org/docs/stable/nn.html#torch.nn.SmoothL1Loss.
     """
-  if beta < 1e-5:
-    # if beta == 0, then torch.where will result in nan gradients when
-    # the chain rule is applied due to pytorch implementation details
-    # (the False branch "0.5 * n ** 2 / 0" has an incoming gradient of
-    # zeros, rather than "no gradient"). To avoid this issue, we define
-    # small values of beta to be exactly l1 loss.
-    loss = torch.abs(input - target)
-  else:
-    n = torch.abs(input - target)
-    cond = n < beta
-    loss = torch.where(cond, 0.5 * n**2 / beta, n - 0.5 * beta)
+    if beta < 1e-5:
+        # if beta == 0, then torch.where will result in nan gradients when
+        # the chain rule is applied due to pytorch implementation details
+        # (the False branch "0.5 * n ** 2 / 0" has an incoming gradient of
+        # zeros, rather than "no gradient"). To avoid this issue, we define
+        # small values of beta to be exactly l1 loss.
+        loss = torch.abs(input - target)
+    else:
+        n = torch.abs(input - target)
+        cond = n < beta
+        loss = torch.where(cond, 0.5 * n**2 / beta, n - 0.5 * beta)
 
-  if reduction == "mean":
-    loss = loss.mean() if loss.numel() > 0 else 0.0 * loss.sum()
-  elif reduction == "sum":
-    loss = loss.sum()
-  return loss
+    if reduction == "mean":
+        loss = loss.mean() if loss.numel() > 0 else 0.0 * loss.sum()
+    elif reduction == "sum":
+        loss = loss.sum()
+    return loss
 
 
 # def giou_loss(
@@ -274,79 +276,173 @@ def smooth_l1_loss(input: torch.Tensor,
 #   return loss
 
 
+# XBL comment; 注意不要使用 ops.box_iou -> [N, M]
+# 而我们实际上只需要 [N,]，boxes1.shape = boxes2.shape
 def box_iou(boxes1, boxes2):
-  """
+    """
     :param boxes1: (N, 4) (x1,y1,x2,y2)
     :param boxes2: (N, 4) (x1,y1,x2,y2)
     :return:
     """
-  area1 = box_area(boxes1)  # (N,)
-  area2 = box_area(boxes2)  # (N,)
+    area1 = ops.box_area(boxes1)  # (N,)
+    area2 = ops.box_area(boxes2)  # (N,)
 
-  lt = torch.max(boxes1[:, :2], boxes2[:, :2])  # (N,2)
-  rb = torch.min(boxes1[:, 2:], boxes2[:, 2:])  # (N,2)
+    lt = torch.max(boxes1[:, :2], boxes2[:, :2])  # (N,2)
+    rb = torch.min(boxes1[:, 2:], boxes2[:, 2:])  # (N,2)
 
-  wh = (rb - lt).clamp(min=0)  # (N,2)
-  inter = wh[:, 0] * wh[:, 1]  # (N,)
+    wh = (rb - lt).clamp(min=0)  # (N,2)
+    inter = wh[:, 0] * wh[:, 1]  # (N,)
 
-  union = area1 + area2 - inter
+    union = area1 + area2 - inter
 
-  iou = inter / union
-  return iou, union
-
-
-'''Note that this implementation is different from DETR's'''
+    iou = inter / union
+    return iou, union
 
 
-def generalized_box_iou(boxes1, boxes2):
-  """
+def complete_iou(boxes1, boxes2):
+    # degenerate boxes gives inf / nan results
+    # so do an early check
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+
+    w1 = torch.exp(boxes1[:, 2])
+    h1 = torch.exp(boxes1[:, 3])
+    w2 = torch.exp(boxes2[:, 2])
+    h2 = torch.exp(boxes2[:, 3])
+
+    center_x1 = boxes1[:, 0]
+    center_y1 = boxes1[:, 1]
+    center_x2 = boxes2[:, 0]
+    center_y2 = boxes2[:, 1]
+
+    c_l = torch.min(center_x1 - w1 / 2, center_x2 - w2 / 2)
+    c_r = torch.max(center_x1 + w1 / 2, center_x2 + w2 / 2)
+    c_t = torch.min(center_y1 - h1 / 2, center_y2 - h2 / 2)
+    c_b = torch.max(center_y1 + h1 / 2, center_y2 + h2 / 2)
+
+    inter_diag = (center_x2 - center_x1)**2 + (center_y2 - center_y1)**2
+    c_diag = torch.clamp((c_r - c_l), min=0)**2 + torch.clamp(
+        (c_b - c_t), min=0)**2
+    u = (inter_diag) / c_diag
+    v = (4 / (math.pi**2)) * torch.pow(
+        (torch.atan(w2 / h2) - torch.atan(w1 / h1)), 2)
+
+    # XBL changed;
+    iou, _ = box_iou(boxes1, boxes2)  # (N,)
+
+    with torch.no_grad():
+        S = (iou > 0.5).float()
+        alpha = S * v / (1 - iou + v)
+
+    cious = iou - u - alpha * v
+    cious = torch.clamp(cious, min=-1.0, max=1.0)
+
+    return cious, iou
+
+
+def distance_iou(boxes1, boxes2):
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+
+    w1 = torch.exp(boxes1[:, 2])
+    h1 = torch.exp(boxes1[:, 3])
+    w2 = torch.exp(boxes2[:, 2])
+    h2 = torch.exp(boxes2[:, 3])
+
+    center_x1 = boxes1[:, 0]
+    center_y1 = boxes1[:, 1]
+    center_x2 = boxes2[:, 0]
+    center_y2 = boxes2[:, 1]
+
+    c_l = torch.min(center_x1 - w1 / 2, center_x2 - w2 / 2)
+    c_r = torch.max(center_x1 + w1 / 2, center_x2 + w2 / 2)
+    c_t = torch.min(center_y1 - h1 / 2, center_y2 - h2 / 2)
+    c_b = torch.max(center_y1 + h1 / 2, center_y2 + h2 / 2)
+
+    inter_diag = (center_x2 - center_x1)**2 + (center_y2 - center_y1)**2
+    c_diag = torch.clamp((c_r - c_l), min=0)**2 + torch.clamp(
+        (c_b - c_t), min=0)**2
+
+    u = (inter_diag) / c_diag
+    # XBL changed;
+    iou, _ = box_iou(boxes1, boxes2)  # (N,)
+    dious = iou - u
+    dious = torch.clamp(dious, min=-1.0, max=1.0)
+
+    return dious, iou
+
+
+def generalized_iou(boxes1, boxes2):
+    """
+    Note that this implementation is different from DETR's!!!
+
     Generalized IoU from https://giou.stanford.edu/
     The boxes should be in [x0, y0, x1, y1] format
     boxes1: (N, 4)
     boxes2: (N, 4)
     """
-  # degenerate boxes gives inf / nan results
-  # so do an early check
-  # try:
-  assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
-  assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
-  iou, union = box_iou(boxes1, boxes2)  # (N,)
+    # degenerate boxes gives inf / nan results
+    # so do an early check
+    # try:
+    assert (boxes1[:, 2:] >= boxes1[:, :2]).all()
+    assert (boxes2[:, 2:] >= boxes2[:, :2]).all()
+    iou, union = box_iou(boxes1, boxes2)  # (N,)
 
-  lt = torch.min(boxes1[:, :2], boxes2[:, :2])
-  rb = torch.max(boxes1[:, 2:], boxes2[:, 2:])
+    lt = torch.min(boxes1[:, :2], boxes2[:, :2])
+    rb = torch.max(boxes1[:, 2:], boxes2[:, 2:])
 
-  wh = (rb - lt).clamp(min=0)  # (N,2)
-  area = wh[:, 0] * wh[:, 1]  # (N,)
+    wh = (rb - lt).clamp(min=0)  # (N,2)
+    area = wh[:, 0] * wh[:, 1]  # (N,)
 
-  return iou - (area - union) / area, iou
+    return iou - (area - union) / area, iou
 
 
 def giou_loss(boxes1, boxes2):
-  """
+    """
     :param boxes1: (N, 4) (x1,y1,x2,y2)
     :param boxes2: (N, 4) (x1,y1,x2,y2)
     :return:
     """
-  giou, iou = generalized_box_iou(boxes1, boxes2)
-  return (1 - giou).mean(), iou.mean()
+    # giou, iou = generalized_iou(boxes1, boxes2)
+    # return (1 - giou).mean(), iou.mean()
+
+    # XBL changed: giou --> ciou/diou
+    ciou, iou = complete_iou(boxes1, boxes2)
+    return (1 - ciou).mean(), iou.mean()
+
+    # diou, iou = distance_iou(boxes1, boxes2)
+    # return (1 - diou).mean(), iou.mean()
+
+
+# XBL add; 参考 https://github.dev/Zzh-tju/CIoU layers/modules/multibox_loss.py
+def ciou_loss(boxes1, boxes2):
+    """
+    :param boxes1: (N, 4) (x1,y1,x2,y2)
+    :param boxes2: (N, 4) (x1,y1,x2,y2)
+    :return:
+    """
+    ciou, iou = complete_iou(boxes1, boxes2)
+    return (1 - ciou).mean(), iou.mean()
 
 
 def centerness_loss(center_scores, pred_boxes, gt_boxes):
-  """calculate box centerness(confidence) losses
+    """calculate box centerness(confidence) losses
 
-  Args:
-      center_scores ([N]): center scores
-      pred_boxes ([N 4]): [pred boxes by the model in xyxy format]
-      gt_boxes ([type]): [gt boxes in xyxy format]
-  """
-  cxcy = (pred_boxes[:, :2] + pred_boxes[:, 2:]).detach() / 2
-  lt = cxcy - gt_boxes[:, :2]
-  rb = gt_boxes[:, 2:] - cxcy
-  lr = (torch.minimum(lt[:, 0], rb[:, 0]) /
-        torch.maximum(lt[:, 0], rb[:, 0]).clamp(min=1e-6)).clamp(min=0)
-  bt = (torch.minimum(lt[:, 1], rb[:, 1]) /
-        torch.maximum(lt[:, 1], rb[:, 1]).clamp(min=1e-6)).clamp(min=0)
-  gt_scores = (lr * bt).sqrt()
-  valid = torch.nonzero(gt_scores)
-  centerness = F.binary_cross_entropy_with_logits(center_scores, gt_scores, reduction='none')
-  return centerness
+    Args:
+        center_scores ([N]): center scores
+        pred_boxes ([N 4]): [pred boxes by the model in xyxy format]
+        gt_boxes ([type]): [gt boxes in xyxy format]
+    """
+    cxcy = (pred_boxes[:, :2] + pred_boxes[:, 2:]).detach() / 2
+    lt = cxcy - gt_boxes[:, :2]
+    rb = gt_boxes[:, 2:] - cxcy
+    lr = (torch.minimum(lt[:, 0], rb[:, 0]) /
+          torch.maximum(lt[:, 0], rb[:, 0]).clamp(min=1e-6)).clamp(min=0)
+    bt = (torch.minimum(lt[:, 1], rb[:, 1]) /
+          torch.maximum(lt[:, 1], rb[:, 1]).clamp(min=1e-6)).clamp(min=0)
+    gt_scores = (lr * bt).sqrt()
+    valid = torch.nonzero(gt_scores)
+    centerness = F.binary_cross_entropy_with_logits(center_scores,
+                                                    gt_scores,
+                                                    reduction='none')
+    return centerness

@@ -127,7 +127,7 @@ class ConvNeXt(nn.Module):
 
         # XBL add; trackron/models/arch/utt.py backbone_out_channels 会使用到！
         self._out_feature_channels = dict(
-            zip([f'layer{i+1}' for i in range(4)], [96, 192, 384, 768]))
+            zip([f'layer{i+1}' for i in range(len(dims))], dims))
         self._out_feature_channels['conv1'] = 96
 
     def _init_weights(self, m):
@@ -238,21 +238,40 @@ def convnext_tiny(cfg):
     return model
 
 
-def convnext_base(**kwargs):
-    model = ConvNeXt(depths=[3, 3, 27, 3],
-                     dims=[128, 256, 512, 1024],
-                     out_indices=[1, 2, 3],
-                     drop_path_rate=0.6,
-                     layer_scale_init_value=1.0,
-                     **kwargs)
+@BACKBONE_REGISTRY.register()
+def convnext_small(cfg):
+    model = ConvNeXt(
+        depths=[3, 3, 27, 3],
+        dims=[96, 192, 384, 768],
+        out_indices=[1, 2, 3],
+        drop_path_rate=0.4,
+        layer_scale_init_value=1.0,
+    )
+
     return model
 
 
-def convnext_large(**kwargs):
-    model = ConvNeXt(depths=[3, 3, 27, 3],
-                     dims=[192, 384, 768, 1536],
-                     out_indices=[1, 2, 3],
-                     drop_path_rate=0.7,
-                     layer_scale_init_value=1.0,
-                     **kwargs)
+@BACKBONE_REGISTRY.register()
+def convnext_base(cfg):
+    model = ConvNeXt(
+        depths=[3, 3, 27, 3],
+        dims=[128, 256, 512, 1024],
+        out_indices=[1, 2, 3],
+        drop_path_rate=0.6,
+        layer_scale_init_value=1.0,
+    )
+
+    return model
+
+
+@BACKBONE_REGISTRY.register()
+def convnext_large(cfg):
+    model = ConvNeXt(
+        depths=[3, 3, 27, 3],
+        dims=[192, 384, 768, 1536],
+        out_indices=[1, 2, 3],
+        drop_path_rate=0.7,
+        layer_scale_init_value=1.0,
+    )
+
     return model

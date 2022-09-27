@@ -9,7 +9,7 @@ from functools import partial
 import trackron.models.box_heads.box_regression as boxtrans
 from trackron.config import configurable
 from trackron.config import configurable
-from trackron.models.objectives.losses import giou_loss, LovaszSegLoss
+from trackron.models.objectives.losses import giou_loss, LovaszSegLoss, ciou_loss
 from trackron.evaluation.analysis.vos_utils import davis_jaccard_measure
 from trackron.data.utils import normalize_boxes
 from trackron.data.mask_ops import crop_and_resize
@@ -45,9 +45,8 @@ class SOTObjective(BaseObjective):
             "loss_bbox": cfg.WEIGHT.LOSS_BBOX,
             "loss_giou": cfg.WEIGHT.LOSS_GIOU,
             "loss_mask": cfg.WEIGHT.LOSS_MASK,
-            # XBL add; cls loss
-            # 'loss_cls': cfg.WEIGHT.LOSS_CLS,
         }
+
         return {"loss_func": loss_func, "loss_weight": loss_weight}
 
     def calculate_box_losses(self, pred_boxes, gt_boxes):
@@ -167,8 +166,9 @@ class SOTObjectiveMultiQuery(SOTObjective):
 # TRACED: 训练日志中打印的使用的损失函数
 @OBJECTIVE_REGISTRY.register()
 class SequenceSOTObjective(SOTObjective):
-    """Objective for training the Squence predict boxes"""
-    import fvcore.nn.focal_loss
+    """
+    Objective for training the Squence predict boxes
+    """
 
     def forward(self, results, data, normalize_box=True):
         pred_boxes = results['pred_boxes']
@@ -196,14 +196,10 @@ class SequenceSOTObjective(SOTObjective):
         losses = {
             'losses/box_l1_loss': l1_loss,
             'losses/box_giou_loss': giou_loss,
-            # XBL add; focal loss
-            # 'losses/focal_loss': focal_loss
         }
         weighted_losses = {
             'losses/box_l1_loss': l1_loss * self.loss_weight['loss_bbox'],
             'losses/box_giou_loss': giou_loss * self.loss_weight['loss_giou'],
-            # XBL add;
-            # 'losses/box_focal_loss': focal_loss * self.loss_weight['loss_cls'],
         }
         ### box score loss
         pred_scores = results.get('pred_scores', None)

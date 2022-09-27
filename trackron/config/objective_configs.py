@@ -29,6 +29,7 @@ def sot_default_objective():
     cfg.WEIGHT = CN()
     cfg.WEIGHT.LOSS_CLS = 1.0
     cfg.WEIGHT.LOSS_BBOX = 5.0
+    # XBL comment;
     cfg.WEIGHT.LOSS_GIOU = 2.0
     cfg.WEIGHT.LOSS_MASK = 0.0
     return cfg
@@ -38,9 +39,7 @@ def sot_default_objective():
 def sot_dimp_objective():
     cfg = sot_default_objective()
     cfg.NAME = 'DiMPObjective'
-    # XBL changed;
     cfg.LOSS_CLS = 'LBHinge'
-    # cfg.LOSS_CLS = 'FocalLoss'
     cfg.LOSS_CLS_THRESHOLD = 0.05
     cfg.LOSS_BBOX = 'IoUScore'
     cfg.WEIGHT.LOSS_CLS = 100.0

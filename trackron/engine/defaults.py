@@ -40,12 +40,12 @@ def default_argument_parser(epilog=None):
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--config-file",
+    parser.add_argument("--config_file",
                         default="configs/utt/utt.yaml",
                         metavar="FILE",
                         help="path to config file")
     parser.add_argument(
-        "--config-func",
+        "--config_func",
         # default="s3t",  # error
         default="utt",
         help="function for setting configs")
@@ -64,10 +64,6 @@ def default_argument_parser(epilog=None):
     parser.add_argument("--eval-only",
                         action="store_true",
                         help="perform evaluation only")
-    parser.add_argument("--num-gpus",
-                        type=int,
-                        default=3,
-                        help="number of gpus *per machine*")
     # TRACED: 测试的时候用于调试打印详细错误信息
     parser.add_argument("--debug", type=int, default=0, help="debug level")
     parser.add_argument("--num-machines",
@@ -84,14 +80,22 @@ def default_argument_parser(epilog=None):
                         help="the rank of this machine (unique per machine)")
 
     # XBL add;
-    parser.add_argument("--batch_size",
+    parser.add_argument("--num_gpu",
                         type=int,
-                        default=24,
-                        help="total batch size of all gpus!")
+                        default=3,
+                        help="number of gpus *per machine*")
     parser.add_argument("--output_dir",
                         type=str,
                         default="./outputs",
-                        help="total batch size of all gpus!")
+                        help="outputs directory")
+    parser.add_argument("--backbone",
+                        type=str,
+                        default="resnet50",
+                        help="backbone type")
+    parser.add_argument("--weights",
+                        type=str,
+                        default="checkpoints/backbone/resnet50-19c8e357.pth",
+                        help="backbone weights")
 
     # PyTorch still may leave orphan processes in multi-gpu training.
     # Therefore we use a deterministic way to obtain port,
